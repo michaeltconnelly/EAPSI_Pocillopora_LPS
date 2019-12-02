@@ -1,0 +1,297 @@
+---
+title: "LPS_DESeq_Pdam"
+author: "Mike Connelly"
+date: "5/20/2019"
+output: html_document
+---
+
+RMarkdown document containing scripts for DESeq2 modelling of differential gene expression between fragments of four *Pocillopora damicornis* genotypes collected at Wanglitung and Houwan reefs and placed in an LPS treatment group and one control group during EAPSI Taiwan, summer 2017.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI_HW-WT-master/")
+```
+## Setup packages and working directories
+```{r packages, error=FALSE, warning=FALSE, message=FALSE}
+library("tidyverse")
+library("DESeq2")
+library("ggpubr")
+library("apeglm")
+```
+## Import sample data
+```{r, echo=FALSE}
+stable_samples <- read.table("EAPSIsamples_stable.txt", header = TRUE)
+#stable_samples$treatment <- as.factor(stable_samples$treatment)
+#stable_samples$genotype <- as.factor(stable_samples$genotype)
+```
+## Import counts data 
+```{r}
+countdata <- read.delim("alltreatments_Pdam.counts", row.names = 1, skip = 1) # comment.char="#",
+```
+## Tidy counts data
+  Set Gene ID's as row names
+  Remove first five columns (chr, start, end, strand, length)
+  Remove file prefixes and suffixes
+  Create condition factors and column data
+```{r, echo=FALSE}
+#rownames(countdata) <- countdata$Geneid
+countdata <- countdata[ ,6:ncol(countdata)]
+  colnames(countdata) <- gsub("X.", "", colnames(countdata))
+  colnames(countdata) <- gsub("scratch.projects.transcriptomics.mikeconnelly.sequences.EAPSI.", "", colnames(countdata))
+  colnames(countdata) <- gsub("houwanwanglitung.alltreatments.STARalign_Pdam.", "", colnames(countdata))
+  colnames(countdata) <- gsub("_PdamAligned.out.bam$", "", colnames(countdata))
+```
+## Import gene feature annotation information
+```{r}
+genefeatures <- read.delim(file = "/Users/mikeconnelly/computing/sequences/genomes/coral/pocillopora/pdam/pdam_genome_IDInfo.gff", header = F)
+colnames(genefeatures) <- c("IDGeneInfo")
+rownames(genefeatures) <- rownames(countdata)
+```
+## Check gene feature annotation and countdata rowname order coherence
+```{r}
+all(rownames(countdata) == rownames(genefeatures))
+```
+## Select which treatments to use in DESeq object construction, subset colonies
+LPS: Control-LPS
+
+```{r}
+countdata_LPS <- dplyr::select(countdata, matches("[HW][wt][12].[36]."))
+```
+```{r}
+countdata_HW1 <- dplyr::select(countdata_LPS, matches("Hw1.*"))
+countdata_HW2 <- dplyr::select(countdata_LPS, matches("Hw2.*"))
+countdata_WT1 <- dplyr::select(countdata_LPS, matches("Wt1.*"))
+countdata_WT2 <- dplyr::select(countdata_LPS, matches("Wt2.*"))
+```
+
+```{r}
+stable_samples_LPS <- filter(stable_samples, Treatment == "control" | Treatment == "LPS")
+```
+```{r}
+stable_samples_HW1 <- filter(stable_samples_LPS, Colony == "HW1")# %>% select(-contains("W"), -contains("2"))
+stable_samples_HW2 <- filter(stable_samples_LPS, Colony == "HW2")# %>% select(-contains("W"), -contains("1"))
+stable_samples_WT1 <- filter(stable_samples_LPS, Colony == "WT1")# %>% select(-contains("H"), -contains("2"))
+stable_samples_WT2 <- filter(stable_samples_LPS, Colony == "WT2")# %>% select(-contains("H"), -contains("1"))
+```
+
+## Convert to matrices 
+```{r, include=FALSE}
+      countdata_LPS <- as.matrix(countdata_LPS)
+```
+```{r, include=FALSE}
+      countdata_HW1 <- as.matrix(countdata_HW1)
+      countdata_HW2 <- as.matrix(countdata_HW2)
+      countdata_WT1 <- as.matrix(countdata_WT1)
+      countdata_WT2 <- as.matrix(countdata_WT2)
+```
+## Create DESeq data objects
+```{r, message=FALSE}
+      dds_LPS <- DESeqDataSetFromMatrix(countData=countdata_LPS, colData=stable_samples_LPS, design= ~Batch + Colony + Treatment)
+      dds_LPS$Treatment <- factor(dds_LPS$Treatment, levels=c("control", "LPS"))
+relevel(dds_LPS$Treatment, ref = "control")
+```
+```{r, message=FALSE}
+      dds_HW1 <- DESeqDataSetFromMatrix(countData=countdata_HW1, colData=stable_samples_HW1, design= ~Batch + Treatment)
+      dds_HW1$Treatment <- factor(dds_HW1$Treatment, levels=c("control", "LPS"))
+relevel(dds_HW1$Treatment, ref = "control")
+```
+```{r, message=FALSE}
+      dds_HW2 <- DESeqDataSetFromMatrix(countData=countdata_HW2, colData=stable_samples_HW2, design= ~Batch + Treatment)
+      dds_HW2$Treatment <- factor(dds_HW2$Treatment, levels=c("control", "LPS"))
+relevel(dds_HW2$Treatment, ref = "control")
+```
+```{r, message=FALSE}
+      dds_WT1 <- DESeqDataSetFromMatrix(countData=countdata_WT1, colData=stable_samples_WT1, design= ~Batch + Treatment)
+      dds_WT1$Treatment <- factor(dds_WT1$Treatment, levels=c("control", "LPS"))
+relevel(dds_WT1$Treatment, ref = "control")
+```
+```{r, message=FALSE}
+      dds_WT2 <- DESeqDataSetFromMatrix(countData=countdata_WT2, colData=stable_samples_WT2, design= ~Treatment)
+      dds_WT2$Treatment <- factor(dds_WT2$Treatment, levels=c("control", "LPS"))
+relevel(dds_WT2$Treatment, ref = "control")
+```
+
+## Check annotation and dds object rowname order coherence
+```{r}
+all(rownames(dds_LPS) == rownames(genefeatures))
+```
+
+## Add gene feature annotation to DESeqDataSets
+```{r}
+mcols(dds_LPS) <- cbind(mcols(dds_LPS), genefeatures)
+names(mcols(dds_LPS))
+```
+```{r}
+mcols(dds_HW1) <- cbind(mcols(dds_HW1), genefeatures)
+mcols(dds_HW2) <- cbind(mcols(dds_HW2), genefeatures)
+mcols(dds_WT1) <- cbind(mcols(dds_WT1), genefeatures)
+mcols(dds_WT2) <- cbind(mcols(dds_WT2), genefeatures)
+```
+
+## Perform DESeq2 analyses
+```{r, message=FALSE}
+      dds_LPS <- DESeq(dds_LPS)
+```
+```{r, message=FALSE}
+      dds_HW1 <- DESeq(dds_HW1)
+      dds_HW2 <- DESeq(dds_HW2)
+      dds_WT1 <- DESeq(dds_WT1)
+      dds_WT2 <- DESeq(dds_WT2)
+```
+
+## Filter low counts
+```{r}
+      keep <- rowSums(counts(dds_LPS), na.rm = TRUE) >= 10
+      dds_LPS <- dds_LPS[keep,]
+```
+```{r}
+      dds_HW1 <- dds_HW1[keep,]
+      dds_HW2 <- dds_HW2[keep,]
+      dds_WT1 <- dds_WT1[keep,]
+      dds_WT2 <- dds_WT2[keep,]
+```
+
+## Obtain DESeq results
+```{r}
+      res_LPS <- results(dds_LPS)
+```
+```{r}
+      res_HW1 <- results(dds_HW1)
+      res_HW2 <- results(dds_HW2)
+      res_WT1 <- results(dds_WT1)
+      res_WT2 <- results(dds_WT2)
+```
+
+## Check output of LPS DESeq2 analysis to ensure quality
+```{r}
+resultsNames(dds_LPS)
+```
+```{r}
+summary(res_LPS)
+```
+```{r}
+mcols(dds_LPS)
+```
+```{r}
+rownames(dds_LPS)
+```
+```{r}
+res_LPS$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
+res_LPS$IDGeneInfo <- as.character(res_LPS$IDGeneInfo)
+```
+```{r}
+colnames(res_LPS)
+```
+```{r}
+pdf(file="~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/DEseq2_DispEsts+MA.pdf", width = 11, height = 8.5)
+plotDispEsts(dds_LPS)
+plotMA(res_LPS, ylim = c(-10, 10))
+```
+
+```{r}
+res_LPS_normal <- lfcShrink(dds_LPS, coef = "Treatment_LPS_vs_control", type = "normal")
+res_LPS_normal$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
+res_LPS_normal$IDGeneInfo <- as.character(res_LPS_normal$IDGeneInfo)
+res_LPS_apeglm <- lfcShrink(dds_LPS, coef = "Treatment_LPS_vs_control", type = "apeglm")
+res_LPS_apeglm$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
+res_LPS_apeglm$IDGeneInfo <- as.character(res_LPS_apeglm$IDGeneInfo)
+```
+```{r}
+plotMA(res_LPS_shrink, ylim = c(-3, 3))
+plotMA(res_LPS_apeglm, ylim = c(-5, 5))
+```
+```{r}
+class(res_LPS_shrink)
+```
+
+```{r}
+pdf(file="~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/DEseq2_MA_ggpubr.pdf", width = 11, height = 8.5)
+ggmaplot(data = res_LPS_shrink, fdr = 0.01, fc = 1.0, size = 1, palette = c("red", "blue", "dark grey"),
+         top = 20)
+```
+```{r}
+pdf(file="~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/DEseq2_MA_ggpubr.pdf", width = 4.25, height = 2.95)
+ggmalps <- ggmaplot(data = res_LPS_apeglm, fdr = 0.01, fc = 0.0, size = 2, palette = c("red", "blue", "dark grey"),
+         top = 0,
+         main = ("Differential Gene Expression MA Plot"),
+         ylab = "log2 fold change", xlab = "log2 mean expression", legend = "none",
+         ggtheme = ggplot2::theme_bw())
+
+ggmalps + ylim(-3,3) + xlim(0, 20)
+  theme(legend.text = element_text(size = 18))
+```
+
+
+## Check output of colony DESeq2 analyses to ensure quality
+```{r}
+resultsNames(dds_HW1)
+resultsNames(dds_HW2)
+resultsNames(dds_WT1)
+resultsNames(dds_WT2)
+```
+```{r}
+summary(res_HW1)
+summary(res_HW2)
+summary(res_WT1)
+summary(res_WT2)
+```
+```{r}
+res_HW1$IDGeneInfo <- mcols(dds_HW1)$IDGeneInfo
+res_HW1$IDGeneInfo <- as.character(res_HW1$IDGeneInfo)
+res_HW2$IDGeneInfo <- mcols(dds_HW2)$IDGeneInfo
+res_HW2$IDGeneInfo <- as.character(res_HW2$IDGeneInfo)
+res_WT1$IDGeneInfo <- mcols(dds_WT1)$IDGeneInfo
+res_WT1$IDGeneInfo <- as.character(res_WT1$IDGeneInfo)
+res_WT2$IDGeneInfo <- mcols(dds_WT2)$IDGeneInfo
+res_WT2$IDGeneInfo <- as.character(res_WT2$IDGeneInfo)
+```
+```{r}
+res_HW1_normal <- lfcShrink(dds_HW1, coef = "Treatment_LPS_vs_control", type = "normal")
+res_HW2_normal <- lfcShrink(dds_HW2, coef = "Treatment_LPS_vs_control", type = "normal")
+res_WT1_normal <- lfcShrink(dds_WT1, coef = "Treatment_LPS_vs_control", type = "normal")
+res_WT2_normal <- lfcShrink(dds_WT2, coef = "Treatment_LPS_vs_control", type = "normal")
+```
+```{r, message=FALSE}
+pdf(file="~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/DEseq2_MA_ggpubr_colonies.pdf", height = 2,  width = 2.12)
+ggmalpsHW1 <- ggmaplot(data = res_HW1_normal, fdr = 0.01, fc = 0.0, size = 1, palette = c("red", "blue", "dark grey"),
+         top = 0,
+         main = "Houwan1",
+         ylab = "log2 fold change", xlab = "log2 mean expression", legend = "none",
+         ggtheme = ggplot2::theme_bw())
+ggmalpsHW1 + ylim(-3,3) + xlim(0, 20) +
+  theme(legend.text = element_text(size = 10),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 10))
+  
+ggmalpsHW2 <- ggmaplot(data = res_HW2_normal, fdr = 0.01, fc = 0.0, size = 1, palette = c("red", "blue", "dark grey"),
+         top = 0,
+         main = "Houwan2",
+         ylab = "log2 fold change", xlab = "log2 mean expression", legend = "none",
+         ggtheme = ggplot2::theme_bw())
+ggmalpsHW2 + ylim(-3,3) + xlim(0, 20) +
+  theme(legend.text = element_text(size = 10),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 10))
+  
+ggmalpsWT1 <- ggmaplot(data = res_WT1_normal, fdr = 0.01, fc = 0.0, size = 1, palette = c("red", "blue", "dark grey"),
+         top = 0,
+         main = "Wanglitung1",
+         ylab = "log2 fold change", xlab = "log2 mean expression", legend = "none",
+         ggtheme = ggplot2::theme_bw())
+ggmalpsWT1 + ylim(-3,3) + xlim(0, 20) +
+  theme(legend.text = element_text(size = 10),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 10))
+  
+ggmalpsWT2 <- ggmaplot(data = res_WT2_normal, fdr = 0.01, fc = 0.0, size = 1, palette = c("red", "blue", "dark grey"),
+         top = 0,
+         main = "Wanglitung2",
+         ylab = "log2 fold change", xlab = "log2 mean expression", legend = "none",
+         ggtheme = ggplot2::theme_bw())
+ggmalpsWT2 + ylim(-3,3) + xlim(0, 20) +
+  theme(legend.text = element_text(size = 10),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 10))
+```
+
+

@@ -1,0 +1,168 @@
+---
+title: "LPS_DESeq-genoplots_Pdam"
+author: "Mike Connelly"
+date: "11/12/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI_HW-WT-master/")
+```
+
+# Overall and genotype-specific combined results table
+```{r}
+genodf <- cbind.data.frame(rownames(res_LPS),
+                           res_LPS$log2FoldChange, res_LPS$padj,
+                           res_HW1$log2FoldChange, res_HW1$padj,
+                           res_HW2$log2FoldChange, res_HW2$padj,
+                           res_WT1$log2FoldChange, res_WT1$padj,
+                           res_WT2$log2FoldChange, res_WT2$padj,
+                           res_LPS$IDGeneInfo)
+colnames(genodf) <- c("GeneID",
+                        "LFC_overall", "padj_overall",
+                        "LFC_HW1", "padj_HW1",
+                        "LFC_HW2", "padj_HW2",
+                        "LFC_WT1", "padj_WT1",
+                        "LFC_WT2", "padj_WT2",
+                      "IDGeneInfo")
+rownames(genodf) <- genodf$GeneID
+genodf <- genodf[,c(1:12)]
+write.csv(genodf, file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/res_overall.csv")
+```
+```{r}
+genodf_clean <- genodf %>%
+  drop_na() %>%
+  arrange(padj_overall)
+write.csv(genodf_clean, file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/res_overall_clean.csv")
+```
+```{r}
+genodf_clean_sig <- genodf_clean %>% 
+  filter(padj_overall <= 0.01 | padj_HW1 <= 0.01 | padj_HW2 <= 0.01 | padj_WT1 <= 0.01 | padj_WT2 <= 0.01)
+write.csv(genodf_clean_sig, file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/ressig_overall.csv")
+genodf_clean_sig_up <- genodf_clean_sig %>% 
+  filter(LFC_overall > 0) %>% arrange(desc(LFC_overall))
+write.csv(genodf_clean_sig_up, file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/ressig_overall_up.csv")
+genodf_clean_sig_dn <- genodf_clean_sig %>% 
+  filter(LFC_overall < 0) %>% arrange(LFC_overall)
+write.csv(genodf_clean_sig_dn, file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/ressig_overall_dn.csv")
+```
+```{r}
+genodf_res <- genodf %>%
+  filter(IDGeneInfo %in% overall)  %>%
+  arrange(padj_overall)
+genodf_res$IDGeneInfo <- gsub("pdam_[0-9]{8} " , "", genodf_res$IDGeneInfo)
+write.csv(genodf_res, file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/ressig_complete.csv")
+```
+```{r}
+castouts <- setdiff(genodf_res$IDGeneInfo, genodf_clean_sig$IDGeneInfo)
+genodf_castours <- genodf %>%
+  filter(IDGeneInfo %in% castouts)  %>%
+  arrange(padj_overall)
+```
+
+## Transform p-values for better format dataframe
+```{r}
+genodf <- cbind.data.frame(rownames(res_LPS),
+                           res_LPS$log2FoldChange, -log10(res_LPS$padj),
+                           res_HW1$log2FoldChange, -log10(res_HW1$padj),
+                           res_HW2$log2FoldChange, -log10(res_HW2$padj),
+                           res_WT1$log2FoldChange, -log10(res_WT1$padj),
+                           res_WT2$log2FoldChange, -log10(res_WT2$padj),
+                           res_LPS$IDGeneInfo)
+colnames(genodf) <- c("GeneID",
+                        "LFC_overall", "padj_overall",
+                        "LFC_HW1", "padj_HW1",
+                        "LFC_HW2", "padj_HW2",
+                        "LFC_WT1", "padj_WT1",
+                        "LFC_WT2", "padj_WT2",
+                      "IDGeneInfo")
+rownames(genodf) <- genodf$GeneID
+genodf <- genodf[,c(1:12)]
+
+# Add DEG up/down columns for overall and genotype-specific models
+genodf$DEG_LPS <- ifelse(genodf$padj_overall > 2 & genodf$LFC_overall > 0, "Upregulated", 
+                           ifelse(genodf$padj_overall > 2 & genodf$LFC_overall < 0, "Downregulated", "NA"))
+genodf$DEG_LPS <- factor(genodf$DEG_LPS, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+### HW1
+genodf$DEG_HW1 <- ifelse(genodf$padj_HW1 > 2 & genodf$LFC_HW1 > 0, "Upregulated", 
+                           ifelse(genodf$padj_HW1 > 2 & genodf$LFC_HW1 < 0, "Downregulated", "NA"))
+genodf$DEG_HW1 <- factor(genodf$DEG_HW1, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+### HW2
+genodf$DEG_HW2 <- ifelse(genodf$padj_HW2 > 2 & genodf$LFC_HW2 > 0, "Upregulated", 
+                           ifelse(genodf$padj_HW2 > 2 & genodf$LFC_HW2 < 0, "Downregulated", "NA"))
+genodf$DEG_HW2 <- factor(genodf$DEG_HW2, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+### WT1
+genodf$DEG_WT1 <- ifelse(genodf$padj_WT1 > 2 & genodf$LFC_WT1 > 0, "Upregulated", 
+                           ifelse(genodf$padj_WT1 > 2 & genodf$LFC_WT1 < 0, "Downregulated", "NA"))
+genodf$DEG_WT1 <- factor(genodf$DEG_WT1, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+### WT2
+genodf$DEG_WT2 <- ifelse(genodf$padj_WT2 > 2 & genodf$LFC_WT2 > 0, "Upregulated", 
+                           ifelse(genodf$padj_WT2 > 2 & genodf$LFC_WT2 < 0, "Downregulated", "NA"))
+genodf$DEG_WT2 <- factor(genodf$DEG_WT2, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+
+# Add DEG threshold columns for two or more genotype consensus DEGs
+genodf$cDEG_HW <- ifelse(genodf$padj_HW1 > 2 & genodf$LFC_HW1 > 1 & 
+                            genodf$padj_HW2 > 2 & genodf$LFC_HW2 > 1, "UP_UP",
+                            ifelse(genodf$padj_HW1 > 2 & genodf$LFC_HW1 > 1 & 
+                            genodf$padj_HW2 > 2 & genodf$LFC_HW2 < -1, "UP_DN",
+                            ifelse(genodf$padj_HW1 > 2 & genodf$LFC_HW1 < -1 & 
+                            genodf$padj_HW2 > 2 & genodf$LFC_HW2 > 1, "DN_UP",
+                            ifelse(genodf$padj_HW1 > 2 & genodf$LFC_HW1 < -1 & 
+                            genodf$padj_HW2 > 2 & genodf$LFC_HW2 < -1, "DN_DN", "AA"))))
+
+genodf$cDEG_WT <- ifelse(genodf$padj_WT1 > 2 & genodf$LFC_WT1 > 1 & 
+                            genodf$padj_WT2 > 2 & genodf$LFC_WT2 > 1, "UP_UP",
+                            ifelse(genodf$padj_WT1 > 2 & genodf$LFC_WT1 > 1 & 
+                            genodf$padj_WT2 > 2 & genodf$LFC_WT2 < -1, "UP_DN",
+                            ifelse(genodf$padj_WT1 > 2 & genodf$LFC_WT1 < -1 & 
+                            genodf$padj_WT2 > 2 & genodf$LFC_WT2 > 1, "DN_UP",
+                            ifelse(genodf$padj_WT1 > 2 & genodf$LFC_WT1 < -1 & 
+                            genodf$padj_WT2 > 2 & genodf$LFC_WT2 < -1, "DN_DN", "AA"))))
+###
+genodf_plot <- genodf %>%
+    drop_na() %>%
+  filter(padj_overall > 2 | padj_HW1 > 2 | padj_HW2 > 2 | padj_WT1 > 2 | padj_WT2 > 2) %>%
+  #filter(DEG_HW1 != "NA") %>%
+  arrange(padj_overall)
+```
+ 
+### Genotype DEG expression plots (Genoplots)
+```{r}
+DEGcolors <- c("red", "blue", "grey")
+```
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/genoplot_HW.pdf", height = 8, width = 8)
+dpg <- ggplot(genodf_plot, aes(LFC_HW1, LFC_HW2))
+
+dpg + 
+  geom_point(aes(color = cDEG_HW)) +
+  geom_hline(yintercept = 0, color = "black", size = 0.2) +
+  geom_vline(xintercept = 0, color = "black", size = 0.2) +
+  geom_abline(intercept = 0, slope = 1, color = "black", size = 0.2, linetype = "dashed") +
+  scale_x_continuous(limits = c(-5, 5), breaks = seq(-10,10,1)) + 
+  scale_y_continuous(limits = c(-5, 5), breaks = seq(-10,10,1)) +
+  scale_color_manual(values = DEGcolors) +
+  coord_fixed(1) +
+  geom_text_repel(data = genodf[genodf$cDEG_HW=="UP_UP", ], aes(label = genodf$IDGeneInfo[genodf$cDEG_HW=="UP_UP"]), size = 1.5, box.padding = unit(0.25, "lines"))
+#  geom_text_repel(data = doubledf[doubledf$cDEG_LPS.Anti=="DN_DN",], aes(label = doubledf$IDGeneInfo[doubledf$cDEG_LPS.Anti=="DN_DN"]), size = 1.5, box.padding = unit(0.25, "lines"))
+```
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/genoplot_WT.pdf", height = 8, width = 8)
+dpg <- ggplot(genodf_plot, aes(LFC_WT1, LFC_WT2))
+
+dpg + 
+  geom_point(aes(color = DEG_LPS, shape = cDEG_WT, size = padj_overall)) +
+  geom_hline(yintercept = 0, color = "black", size = 0.2) +
+  geom_vline(xintercept = 0, color = "black", size = 0.2) +
+  geom_abline(intercept = 0, slope = 1, color = "black", size = 0.2, linetype = "dashed") +
+  scale_x_continuous(limits = c(-5, 5), breaks = seq(-10,10,1)) + 
+  scale_y_continuous(limits = c(-5, 5), breaks = seq(-10,10,1)) +
+  scale_color_manual(values = DEGcolors) +
+  coord_fixed(1) +
+  geom_text_repel(data = genodf[genodf$cDEG_WT=="UP_UP", ], aes(label = genodf$IDGeneInfo[genodf$cDEG_WT=="UP_UP"]), size = 1.5, box.padding = unit(0.25, "lines")) +
+  geom_text_repel(data = genodf[genodf$cDEG_WT=="DN_DN",], aes(label = genodf$IDGeneInfo[genodf$cDEG_WT=="DN_DN"]), size = 1.5, box.padding = unit(0.25, "lines"))
+```
+```{r}
+consdf <- genodf[genodf$IDGeneInfo %in% HW12_WT12, ]
+```

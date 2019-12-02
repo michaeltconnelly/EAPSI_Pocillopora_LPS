@@ -1,0 +1,698 @@
+---
+title: "Stable_DEseq-heatmaps_Pdam"
+author: "Mike Connelly"
+date: "10/30/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI.HW-WT-master")
+options(stringsAsFactors = F)
+```
+## Setup packages and working directories
+```{r packages, error=FALSE, warning=FALSE, message=FALSE}
+library("tidyverse")
+library("ggplot2")
+library("ggrepel")
+library("calibrate")
+library("pheatmap")
+library("RColorBrewer")
+library("genefilter")
+```
+## Set general ggplot2 colors 
+```{r}
+theme_set(theme_bw())
+colshapes <- c(16, 17, 15, 18)
+condcolors_LPS <- c("#0000FF", "#FF66FF")
+colcolors <- c("olivedrab3", "springgreen", "deepskyblue", "skyblue")
+```
+### Create heatmap annotation data frame
+```{r}
+anno_col <- as.data.frame(colData(rld_LPS)[, c("Treatment","Colony")])
+```
+### Create colony and condition annotation colors
+```{r}
+anno_colors <- list(
+  Colony = c(HW1=colcolors[1], HW2=colcolors[2], WT1=colcolors[3], WT2=colcolors[4]),
+  Treatment = c(control=condcolors_LPS[1], LPS=condcolors_LPS[2]),
+  DEG = c(Upregulated="red", Downregulated="blue"))
+```
+
+## Sample Clustering Heatmap
+```{r}
+sampleDists <- dist(t(assay(rld_LPS)))
+sampleDistMatrix <- as.matrix( sampleDists )
+```
+### Create sample heatmap cell color
+```{r}
+colonyclustercol <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+```
+```{r}
+pheatmap(sampleDistMatrix,
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists,
+         col = colonyclustercol,
+         annotation_colors = anno_colors,
+         annotation_col = anno_col,
+         annotation_legend = FALSE,
+         treeheight_col = 30,
+         treeheight_row = 30,
+         main = "Stable Site Samples Heatmap")
+```
+
+## Gene Clustering Heatmaps
+### Create gene expression cell color
+```{r}
+# Function to plot color bar
+color.bar <- function(lut, min, max=-min, nticks=11, ticks=seq(min, max, len=nticks), title='') {
+    scale = (length(lut)-1)/(max-min)
+
+    dev.new(width=1.75, height=5)
+    plot(c(0,10), c(min,max), type='n', bty='n', xaxt='n', xlab='', yaxt='n', ylab='', main=title)
+    axis(2, ticks, las=1)
+    for (i in 1:(length(lut)-1)) {
+    	y = (i-1)/scale + min
+    	rect(0,y,10,y+1/scale, col=lut[i], border=NA)
+    }	
+}
+```
+```{r}
+geneexpcolors <- colorRampPalette( rev(brewer.pal(9, "RdYlBu")) )(300)
+
+geneexpcolors1 <- colorRampPalette(colors()[c(26,1,553)])(300)
+
+# Here is a fancy color palette inspired by http://www.colbyimaging.com/wiki/statistics/color-bars
+down <- rainbow(50, start=rgb2hsv(col2rgb('cyan'))[1], end=rgb2hsv(col2rgb('blue'))[1])
+up <- rainbow(50, start=rgb2hsv(col2rgb('red'))[1], end=rgb2hsv(col2rgb('yellow'))[1])
+cols <- c(rev(down), "white", rev(up))
+mypalette <- colorRampPalette(cols)(400)
+6/length(mypalette)
+
+geneexpcolors2 <- mypalette
+
+color.bar(down, -1, 1)
+color.bar(up, -1, 1)
+color.bar(mypalette, -3, 3)
+
+color.bar(geneexpcolors, -1, 1)
+color.bar(geneexpcolors1, -1, 1)
+```
+
+
+### Create top 20 variable gene matrix 
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Create heatmap matrix and annotation groupings
+topVarGenes20 <- head(order(rowVars(assay(rld_LPS)), decreasing = TRUE), 20)
+mat20  <- assay(rld_LPS)[ topVarGenes20, ]
+rownames(mat20) <- rowData(rld_LPS)$IDGeneInfo[topVarGenes20]
+```
+```{r}
+mat20  <- mat20 - rowMeans(mat20)
+```
+## 20 Gene Heatmap
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_top20.pdf", width = 6.5, height = 4)
+pheatmap(mat20, col=geneexpcolors,
+         annotation_col = anno_col,
+         annotation_row = NULL,
+         show_rownames = TRUE,
+         fontsize_row = 5,
+         annotation_colors = anno_colors,
+         annotation_legend = FALSE,
+         legend = FALSE,
+         treeheight_col = 50,
+         treeheight_row = 40,
+         main="Stable SampleXGene Heatmap")
+```
+
+### Create top 50 variable gene matrix
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Create heatmap matrix and annotation groupings
+topVarGenes50 <- head(order(rowVars(assay(rld_LPS)), decreasing = TRUE), 50)
+mat50  <- assay(rld_LPS)[ topVarGenes50, ]
+rownames(mat50) <- rowData(rld_LPS)$IDGeneInfo[topVarGenes50]
+```
+## 50 Gene Heatmap
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_top50.pdf", width = 11, height = 8.5)
+pheatmap(mat50, col=geneexpcolors,
+         annotation_col = anno_col,
+         annotation_row = NULL,
+         show_rownames = TRUE,
+         fontsize_row = 5,
+         annotation_colors = anno_colors,
+         annotation_legend = TRUE,
+         legend = FALSE,
+         treeheight_col = 50,
+         treeheight_row = 80,
+         main="Stable SampleXGene Heatmap")
+```
+
+### Create top 500 variable gene matrix
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Create heatmap matrix and annotation groupings
+topVarGenes500 <- head(order(rowVars(assay(rld_LPS)), decreasing = TRUE), 500)
+mat500  <- assay(rld_LPS)[ topVarGenes500, ]
+rownames(mat500) <- rowData(rld_LPS)$IDGeneInfo[topVarGenes500]
+```
+
+## 500 Gene Heatmap
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_top500.pdf", width = 8, height = 4)
+pheatmap(mat500, col=geneexpcolors,
+         annotation_col = anno_col,
+         annotation_row = NULL,
+         show_rownames = TRUE,
+         fontsize_row = 5,
+         annotation_colors = anno_colors,
+         annotation_legend = FALSE,
+         legend = FALSE,
+         treeheight_col = 50,
+         treeheight_row = 80,
+         main="Stable SampleXGene Heatmap")
+```
+
+### Create LPS-Control differentially expressed gene matrix 
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Create heatmap matrix and annotation groupings
+rownames_ressig_LPS_ctrl_up <- row.names(ressig_LPS_ctrl_up)[1:95]
+mat_ressig_LPS_ctrl_up  <- assay(rld_LPS)[rownames_ressig_LPS_ctrl_up, ]
+row.names(mat_ressig_LPS_ctrl_up) <- ressig_LPS_ctrl_up$IDGeneInfo[1:95]
+```
+```{r}
+mat_ressig_LPS_ctrl_up  <- mat_ressig_LPS_ctrl_up - rowMeans(mat_ressig_LPS_ctrl_up)
+```
+## LPS-Control up DEG Heatmap
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_upDEG.pdf", width = 16, height = 16)
+pheatmap(mat_ressig_LPS_ctrl_up, col=geneexpcolors,
+         annotation_col = anno_col,
+         annotation_row = NULL,
+         show_rownames = TRUE,
+         fontsize_row = 10,
+         annotation_colors = anno_colors,
+         annotation_legend = FALSE,
+         legend = FALSE,
+         treeheight_col = 60,
+         treeheight_row = 120)
+```
+
+### Create LPS-Control differentially expressed gene matrix 
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Create heatmap matrix and annotation groupings
+rownammes_ressig_LPS_ctrl_dn <- row.names(ressig_LPS_ctrl_dn)[1:73]
+mat_ressig_LPS_ctrl_dn  <- assay(rld_LPS)[rownammes_ressig_LPS_ctrl_dn, ]
+row.names(mat_ressig_LPS_ctrl_dn) <- ressig_LPS_ctrl_dn$IDGeneInfo[1:73]
+```
+```{r}
+mat_ressig_LPS_ctrl_dn  <- mat_ressig_LPS_ctrl_dn - rowMeans(mat_ressig_LPS_ctrl_dn)
+```
+## LPS-Control dn DEG Heatmap
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_dnDEG.pdf", width = 16, height = 14)
+pheatmap(mat_ressig_LPS_ctrl_dn, col=geneexpcolors,
+         annotation_col = anno_col,
+         annotation_row = NULL,
+         show_rownames = TRUE,
+         fontsize_row = 10,
+         annotation_colors = anno_colors,
+         annotation_legend = FALSE,
+         legend = FALSE,
+         treeheight_col = 60,
+         treeheight_row = 120)
+```
+
+
+```{r}
+mat_ressig_LPS <- rbind(mat_ressig_LPS_ctrl_up, mat_ressig_LPS_ctrl_dn)
+mat_ressig_LPS <- mat_ressig_LPS - rowMeans(mat_ressig_LPS)
+```
+
+```{r}
+min(mat_ressig_LPS)
+```
+
+## LPS-Control DEG Heatmap
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_allDEG_4.pdf", width = 8.5, height = 3.5)
+pheatmap(mat_ressig_LPS, col=mypalette,
+         annotation_col = anno_col[,c("Colony", "Treatment")],
+         annotation_row = anno_row,
+         show_rownames = FALSE,
+         show_colnames = FALSE,
+         fontsize_row = 3,
+         annotation_colors = anno_colors,
+         annotation_legend = TRUE,
+         annotation_names_col = FALSE,
+         annotation_names_row = FALSE,
+         legend = TRUE,
+         treeheight_col = 30,
+         treeheight_row = 80,
+         breaks = seq(-3, 3, by = 0.015),
+         cutree_rows = 2,
+         cutree_cols = 2)
+```
+
+## Create DEG row annotations
+```{r}
+anno_row_up <- data.frame(rownames(mat_ressig_LPS_ctrl_up), rep("Upregulated", length((rownames(mat_ressig_LPS_ctrl_up)))))
+colnames(anno_row_up) <- c("Gene","DEG")
+rownames(anno_row_up) <- (rownames(mat_ressig_LPS_ctrl_up))
+anno_row_dn <- data.frame(rownames(mat_ressig_LPS_ctrl_dn), rep("Downregulated", length((rownames(mat_ressig_LPS_ctrl_dn)))))
+colnames(anno_row_dn) <- c("Gene","DEG")
+rownames(anno_row_dn) <- (rownames(mat_ressig_LPS_ctrl_dn))
+anno_row <- rbind(anno_row_up, anno_row_dn)
+anno_row$Gene <- NULL
+```
+
+
+
+### Create LPS-Control PC1 loadings gene matrix 
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Create heatmap matrix and annotation groupings
+rownames_PC1_load_LPS <- row.names(PCA_loads_LPS)
+mat_PC1_load_LPS  <- assay(rld_LPS)[ rownames_PC1_load_LPS, ]
+row.names(mat_PC1_load_LPS) <- rowData(rld_LPS)$IDGeneInfo[topVarGenes500]
+```
+
+```{r}
+mat_PC1_load_LPS  <- mat_PC1_load_LPS - rowMeans(mat_PC1_load_LPS)
+```
+## LPS-Control PC1 loadings Heatmap
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_PC1load.pdf", width = 11, height = 8.5)
+pheatmap(mat_PC1_load_LPS, col=geneexpcolors,
+         annotation_col = anno_col,
+         annotation_row = NULL,
+         show_rownames = TRUE,
+         fontsize_row = 5,
+         annotation_colors = anno_colors,
+         annotation_legend = FALSE,
+         legend = TRUE,
+         treeheight_col = 50,
+         treeheight_row = 40,
+         main="Stable SampleXGene Heatmap")
+```
+
+## HW1 LPS-Control up DEG Heatmap
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Create heatmap matrix and annotation groupings
+rownames_ressig_HW1_LPS_ctrl_up <- row.names(ressig_HW1_LPS_up)
+mat_ressig_HW1_LPS_ctrl_up  <- assay(rld_HW1)[rownames_ressig_HW1_LPS_ctrl_up, ]
+row.names(mat_ressig_HW1_LPS_ctrl_up) <- ressig_HW1_LPS_up$IDGeneInfo
+```
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_HW1_upDEG.pdf", width = 16, height = 16)
+pheatmap(mat_ressig_HW1_LPS_ctrl_up, col=geneexpcolors,
+         annotation_col = anno_col,
+         annotation_row = NULL,
+         show_rownames = TRUE,
+         fontsize_row = 10,
+         annotation_colors = anno_colors,
+         annotation_legend = FALSE,
+         legend = FALSE,
+         treeheight_col = 60,
+         treeheight_row = 120)
+```
+
+## HW2 LPS-Control up DEG Heatmap
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Create heatmap matrix and annotation groupings
+rownames_ressig_HW2_LPS_ctrl_up <- row.names(ressig_HW2_LPS_up)
+mat_ressig_HW2_LPS_ctrl_up  <- assay(rld_HW2)[rownames_ressig_HW2_LPS_ctrl_up, ]
+row.names(mat_ressig_HW2_LPS_ctrl_up) <- ressig_HW2_LPS_up$IDGeneInfo
+```
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_HW2_upDEG.pdf", width = 16, height = 16)
+pheatmap(mat_ressig_HW2_LPS_ctrl_up, col=geneexpcolors,
+         annotation_col = anno_col,
+         annotation_row = NULL,
+         show_rownames = TRUE,
+         fontsize_row = 10,
+         annotation_colors = anno_colors,
+         annotation_legend = FALSE,
+         legend = FALSE,
+         treeheight_col = 60,
+         treeheight_row = 120)
+```
+
+## WT1 LPS-Control up DEG Heatmap
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Create heatmap matrix and annotation groupings
+rownames_ressig_WT1_LPS_ctrl_up <- row.names(ressig_WT1_LPS_up)
+mat_ressig_WT1_LPS_ctrl_up  <- assay(rld_WT1)[rownames_ressig_WT1_LPS_ctrl_up, ]
+row.names(mat_ressig_WT1_LPS_ctrl_up) <- ressig_WT1_LPS_up$IDGeneInfo
+```
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_WT1_upDEG.pdf", width = 16, height = 16)
+pheatmap(mat_ressig_WT1_LPS_ctrl_up, col=geneexpcolors,
+         annotation_col = anno_col,
+         annotation_row = NULL,
+         show_rownames = TRUE,
+         fontsize_row = 10,
+         annotation_colors = anno_colors,
+         annotation_legend = FALSE,
+         legend = FALSE,
+         treeheight_col = 60,
+         treeheight_row = 120)
+```
+
+## WT2 LPS-Control up DEG Heatmap
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Create heatmap matrix and annotation groupings
+rownames_ressig_WT2_LPS_ctrl_up <- row.names(ressig_WT2_LPS_up)
+mat_ressig_WT2_LPS_ctrl_up  <- assay(rld_WT2)[rownames_ressig_WT2_LPS_ctrl_up, ]
+row.names(mat_ressig_WT2_LPS_ctrl_up) <- ressig_WT2_LPS_up$IDGeneInfo
+```
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_WT2_upDEG.pdf", width = 16, height = 16)
+pheatmap(mat_ressig_WT2_LPS_ctrl_up, col=geneexpcolors,
+         annotation_col = anno_col,
+         annotation_row = NULL,
+         show_rownames = TRUE,
+         fontsize_row = 10,
+         annotation_colors = anno_colors,
+         annotation_legend = FALSE,
+         legend = FALSE,
+         treeheight_col = 60,
+         treeheight_row = 120)
+```
+
+## Selected DEG Heatmap
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Create heatmap matrix and annotation groupings
+selectDEGs <- read.delim("~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/selectDEGs.txt", header = FALSE)
+selDEGs <- match(selectDEGs$V1, rownames(res_LPS))
+mat_selectDEgs  <- assay(rld_LPS)[selDEGs, ]
+row.names(mat_selectDEgs) <- res_LPS$IDGeneInfo[selDEGs]
+mat_selectDEgs <- mat_selectDEgs - rowMeans(mat_selectDEgs)
+```
+
+## Selected DEG Heatmap
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Create heatmap matrix and annotation groupings
+selectDEGs <- read.delim("~/computing/scripts/EAPSI_LPS-master/WGCNAmodules_Pdam_ctrl-LPS/lists/black_ID.txt", header = FALSE)
+selDEGs <- match(selectDEGs$V1, rownames(res_LPS))
+mat_selectDEgs  <- assay(rld_LPS)[selDEGs, ]
+row.names(mat_selectDEgs) <- res_LPS$IDGeneInfo[selDEGs]
+mat_selectDEgs <- mat_selectDEgs - rowMeans(mat_selectDEgs)
+```
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/selectDEGs.pdf", width = 13.5, height = 6)
+pheatmap(mat_selectDEgs, col=geneexpcolors,
+         annotation_col = anno_col,
+         annotation_row = NULL,
+         show_rownames = TRUE,
+         fontsize_row = 10,
+         annotation_colors = anno_colors,
+         annotation_legend = TRUE,
+         legend = TRUE,
+         treeheight_col = 60,
+         treeheight_row = 80)
+```
+
+
+
+# DEG Heatmaps for each colony
+## HW1
+### Create LPS-Control differentially expressed gene matrix
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Upregulated DEGs
+rownames_ressig_HW1_LPS_up <- row.names(ressig_HW1_LPS_up)
+mat_ressig_HW1_LPS_up  <- assay(rld_HW1)[rownames_ressig_HW1_LPS_up, ]
+row.names(mat_ressig_HW1_LPS_up) <- ressig_HW1_LPS_up$IDGeneInfo
+#Downregulated DEGs
+rownames_ressig_HW1_LPS_dn <- row.names(ressig_HW1_LPS_dn)
+mat_ressig_HW1_LPS_dn  <- assay(rld_HW1)[rownames_ressig_HW1_LPS_dn, ]
+row.names(mat_ressig_HW1_LPS_dn) <- ressig_HW1_LPS_dn$IDGeneInfo
+#Combine into one matrix
+mat_ressig_HW1_LPS <- rbind(mat_ressig_HW1_LPS_up, mat_ressig_HW1_LPS_dn)
+mat_ressig_HW1_LPS <- mat_ressig_HW1_LPS - rowMeans(mat_ressig_HW1_LPS)
+range(mat_ressig_HW1_LPS)
+```
+```{r}
+# Create column annotations
+anno_col_HW1 <- as.data.frame(colData(rld_HW1)[, c("Treatment","Colony")])
+anno_colors_HW1 <- list(
+  Colony = c(HW1=colcolors[1]), 
+  Treatment = c(control=condcolors_LPS[1], LPS=condcolors_LPS[2]),
+  DEG = c(Upregulated="red", Downregulated="blue"))
+# Create row annotations
+anno_row_HW1_up <- data.frame(rownames(mat_ressig_HW1_LPS_up), rep("Upregulated", length((rownames(mat_ressig_HW1_LPS_up)))))
+colnames(anno_row_HW1_up) <- c("Gene","DEG")
+rownames(anno_row_HW1_up) <- (rownames(mat_ressig_HW1_LPS_up))
+anno_row_HW1_dn <- data.frame(rownames(mat_ressig_HW1_LPS_dn), rep("Downregulated", length((rownames(mat_ressig_HW1_LPS_dn)))))
+colnames(anno_row_HW1_dn) <- c("Gene","DEG")
+rownames(anno_row_HW1_dn) <- (rownames(mat_ressig_HW1_LPS_dn))
+anno_row_HW1 <- rbind(anno_row_HW1_up, anno_row_HW1_dn)
+anno_row_HW1$Gene <- NULL
+```
+## HW2
+### Create LPS-Control differentially expressed gene matrix
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Upregulated DEGs
+rownames_ressig_HW2_LPS_up <- row.names(ressig_HW2_LPS_up)
+mat_ressig_HW2_LPS_up  <- assay(rld_HW2)[rownames_ressig_HW2_LPS_up, ]
+row.names(mat_ressig_HW2_LPS_up) <- ressig_HW2_LPS_up$IDGeneInfo
+#Downregulated DEGs
+rownames_ressig_HW2_LPS_dn <- row.names(ressig_HW2_LPS_dn)
+mat_ressig_HW2_LPS_dn  <- assay(rld_HW2)[rownames_ressig_HW2_LPS_dn, ]
+row.names(mat_ressig_HW2_LPS_dn) <- ressig_HW2_LPS_dn$IDGeneInfo
+#Combine into one matrix
+mat_ressig_HW2_LPS <- rbind(mat_ressig_HW2_LPS_up, mat_ressig_HW2_LPS_dn)
+mat_ressig_HW2_LPS <- mat_ressig_HW2_LPS - rowMeans(mat_ressig_HW2_LPS)
+range(mat_ressig_HW2_LPS)
+```
+```{r}
+# Create column annotations
+anno_col_HW2 <- as.data.frame(colData(rld_HW2)[, c("Treatment","Colony")])
+anno_colors_HW2 <- list(
+  Colony = c(HW2=colcolors[2]), 
+  Treatment = c(control=condcolors_LPS[1], LPS=condcolors_LPS[2]),
+  DEG = c(Upregulated="red", Downregulated="blue"))
+# Create row annotations
+anno_row_HW2_up <- data.frame(rownames(mat_ressig_HW2_LPS_up), rep("Upregulated", length((rownames(mat_ressig_HW2_LPS_up)))))
+colnames(anno_row_HW2_up) <- c("Gene","DEG")
+rownames(anno_row_HW2_up) <- (rownames(mat_ressig_HW2_LPS_up))
+anno_row_HW2_dn <- data.frame(rownames(mat_ressig_HW2_LPS_dn), rep("Downregulated", length((rownames(mat_ressig_HW2_LPS_dn)))))
+colnames(anno_row_HW2_dn) <- c("Gene","DEG")
+rownames(anno_row_HW2_dn) <- (rownames(mat_ressig_HW2_LPS_dn))
+anno_row_HW2 <- rbind(anno_row_HW2_up, anno_row_HW2_dn)
+anno_row_HW2$Gene <- NULL
+```
+## WT1
+### Create LPS-Control differentially expressed gene matrix
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Upregulated DEGs
+rownames_ressig_WT1_LPS_up <- row.names(ressig_WT1_LPS_up)
+mat_ressig_WT1_LPS_up  <- assay(rld_WT1)[rownames_ressig_WT1_LPS_up, ]
+row.names(mat_ressig_WT1_LPS_up) <- ressig_WT1_LPS_up$IDGeneInfo
+#Downregulated DEGs
+rownames_ressig_WT1_LPS_dn <- row.names(ressig_WT1_LPS_dn)
+mat_ressig_WT1_LPS_dn  <- assay(rld_WT1)[rownames_ressig_WT1_LPS_dn, ]
+row.names(mat_ressig_WT1_LPS_dn) <- ressig_WT1_LPS_dn$IDGeneInfo
+#Combine into one matrix
+mat_ressig_WT1_LPS <- rbind(mat_ressig_WT1_LPS_up, mat_ressig_WT1_LPS_dn)
+mat_ressig_WT1_LPS <- mat_ressig_WT1_LPS - rowMeans(mat_ressig_WT1_LPS)
+range(mat_ressig_WT1_LPS)
+```
+```{r}
+# Create column annotations
+anno_col_WT1 <- as.data.frame(colData(rld_WT1)[, c("Treatment","Colony")])
+anno_colors_WT1 <- list(
+  Colony = c(WT1=colcolors[3]), 
+  Treatment = c(control=condcolors_LPS[1], LPS=condcolors_LPS[2]),
+  DEG = c(Upregulated="red", Downregulated="blue"))
+# Create row annotations
+anno_row_WT1_up <- data.frame(rownames(mat_ressig_WT1_LPS_up), rep("Upregulated", length((rownames(mat_ressig_WT1_LPS_up)))))
+colnames(anno_row_WT1_up) <- c("Gene","DEG")
+rownames(anno_row_WT1_up) <- (rownames(mat_ressig_WT1_LPS_up))
+anno_row_WT1_dn <- data.frame(rownames(mat_ressig_WT1_LPS_dn), rep("Downregulated", length((rownames(mat_ressig_WT1_LPS_dn)))))
+colnames(anno_row_WT1_dn) <- c("Gene","DEG")
+rownames(anno_row_WT1_dn) <- (rownames(mat_ressig_WT1_LPS_dn))
+anno_row_WT1 <- rbind(anno_row_WT1_up, anno_row_WT1_dn)
+anno_row_WT1$Gene <- NULL
+```
+## WT2
+### Create LPS-Control differentially expressed gene matrix
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Upregulated DEGs
+rownames_ressig_WT2_LPS_up <- row.names(ressig_WT2_LPS_up)
+mat_ressig_WT2_LPS_up  <- assay(rld_WT2)[rownames_ressig_WT2_LPS_up, ]
+row.names(mat_ressig_WT2_LPS_up) <- ressig_WT2_LPS_up$IDGeneInfo
+#Downregulated DEGs
+rownames_ressig_WT2_LPS_dn <- row.names(ressig_WT2_LPS_dn)
+mat_ressig_WT2_LPS_dn  <- assay(rld_WT2)[rownames_ressig_WT2_LPS_dn, ]
+row.names(mat_ressig_WT2_LPS_dn) <- ressig_WT2_LPS_dn$IDGeneInfo
+#Combine into one matrix
+mat_ressig_WT2_LPS <- rbind(mat_ressig_WT2_LPS_up, mat_ressig_WT2_LPS_dn)
+mat_ressig_WT2_LPS <- mat_ressig_WT2_LPS - rowMeans(mat_ressig_WT2_LPS)
+range(mat_ressig_WT2_LPS)
+```
+```{r}
+# Create column annotations
+anno_col_WT2 <- as.data.frame(colData(rld_WT2)[, c("Treatment","Colony")])
+anno_colors_WT2 <- list(
+  Colony = c(WT2=colcolors[4]), 
+  Treatment = c(control=condcolors_LPS[1], LPS=condcolors_LPS[2]),
+  DEG = c(Upregulated="red", Downregulated="blue"))
+# Create row annotations
+anno_row_WT2_up <- data.frame(rownames(mat_ressig_WT2_LPS_up), rep("Upregulated", length((rownames(mat_ressig_WT2_LPS_up)))))
+colnames(anno_row_WT2_up) <- c("Gene","DEG")
+rownames(anno_row_WT2_up) <- (rownames(mat_ressig_WT2_LPS_up))
+anno_row_WT2_dn <- data.frame(rownames(mat_ressig_WT2_LPS_dn), rep("Downregulated", length((rownames(mat_ressig_WT2_LPS_dn)))))
+colnames(anno_row_WT2_dn) <- c("Gene","DEG")
+rownames(anno_row_WT2_dn) <- (rownames(mat_ressig_WT2_LPS_dn))
+anno_row_WT2 <- rbind(anno_row_WT2_up, anno_row_WT2_dn)
+anno_row_WT2$Gene <- NULL
+```
+
+## LPS-Control DEG Colony-Specific Heatmaps
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_allDEG_colonies.pdf", width = 2.12, height = 2)
+pheatmap(mat_ressig_HW1_LPS, col=mypalette,
+         annotation_col = anno_col_HW1,
+         annotation_row = anno_row_HW1,
+         show_rownames = FALSE,
+         show_colnames = FALSE,
+         fontsize_row = 3,
+         annotation_colors = anno_colors_HW1,
+         annotation_legend = FALSE,
+         annotation_names_col = FALSE,
+         annotation_names_row = FALSE,
+         legend = FALSE,
+         treeheight_col = 15,
+         treeheight_row = 30,
+         breaks = seq(-3, 3, by = 0.015),
+         cutree_rows = 1,
+         cutree_cols = 2)
+pheatmap(mat_ressig_HW2_LPS, col=mypalette,
+         annotation_col = anno_col_HW2,
+         annotation_row = anno_row_HW2,
+         show_rownames = FALSE,
+         show_colnames = FALSE,
+         fontsize_row = 3,
+         annotation_colors = anno_colors_HW2,
+         annotation_legend = FALSE,
+         annotation_names_col = FALSE,
+         annotation_names_row = FALSE,
+         legend = FALSE,
+         treeheight_col = 15,
+         treeheight_row = 30,
+         breaks = seq(-3, 3, by = 0.015),
+         cutree_rows = 1,
+         cutree_cols = 2)
+pheatmap(mat_ressig_WT1_LPS, col=mypalette,
+         annotation_col = anno_col_WT1,
+         annotation_row = anno_row_WT1,
+         show_rownames = FALSE,
+         show_colnames = FALSE,
+         fontsize_row = 3,
+         annotation_colors = anno_colors_WT1,
+         annotation_legend = FALSE,
+         annotation_names_col = FALSE,
+         annotation_names_row = FALSE,
+         legend = FALSE,
+         treeheight_col = 15,
+         treeheight_row = 30,
+         breaks = seq(-3, 3, by = 0.015),
+         cutree_rows = 1,
+         cutree_cols = 2)
+pheatmap(mat_ressig_WT2_LPS, col=mypalette,
+         annotation_col = anno_col_WT2,
+         annotation_row = anno_row_WT2,
+         show_rownames = FALSE,
+         show_colnames = FALSE,
+         fontsize_row = 3,
+         annotation_colors = anno_colors_WT2,
+         annotation_legend = FALSE,
+         annotation_names_col = FALSE,
+         annotation_names_row = FALSE,
+         legend = FALSE,
+         treeheight_col = 15,
+         treeheight_row = 30,
+         breaks = seq(-3, 3, by = 0.015),
+         cutree_rows = 1,
+         cutree_cols = 2)
+```
+
+```{r}
+HW_DEG_up <- intersect(rownames_ressig_HW1_LPS_up, rownames_ressig_HW2_LPS_up)
+WT_DEG_up <- intersect(rownames_ressig_WT1_LPS_up, rownames_ressig_WT2_LPS_up)
+DEG_up <- intersect(HW_DEG_up, WT_DEG_up)
+DEG_up
+```
+
+```{r}
+HW_DEG_dn <- intersect(rownames_ressig_HW1_LPS_dn, rownames_ressig_HW2_LPS_dn)
+HW_DEG_dn
+WT_DEG_dn <- intersect(rownames_ressig_WT1_LPS_dn, rownames_ressig_WT2_LPS_dn)
+DEG_dn <- intersect(rownames_ressig_HW2_LPS_dn, WT_DEG_dn)
+DEG_dn
+```
+### Create LPS-Control colony consensus differentially expressed gene matrix
+```{r geneheatmap, message = FALSE, warning = FALSE}
+#Upregulated DEGs
+mat_consensus_up  <- assay(rld_LPS)[DEG_up, ]
+row.names(mat_consensus_up) <- res_LPS$IDGeneInfo[rownames(res_LPS) %in% DEG_up]
+#Downregulated DEGs
+#rownames_ressig_HW1_LPS_dn <- row.names(ressig_HW1_LPS_dn)
+#mat_ressig_HW1_LPS_dn  <- assay(rld_HW1)[rownames_ressig_HW1_LPS_dn, ]
+#row.names(mat_ressig_HW1_LPS_dn) <- ressig_HW1_LPS_dn$IDGeneInfo
+#Combine into one matrix
+#mat_ressig_HW1_LPS <- rbind(mat_ressig_HW1_LPS_up, mat_ressig_HW1_LPS_dn)
+mat_consensus_up <- mat_consensus_up - rowMeans(mat_consensus_up)
+range(mat_consensus_up)
+```
+```{r}
+rownames(mat_consensus_up) <- gsub("\\(.*\\)", "", rownames(mat_consensus_up))
+rownames(mat_consensus_up) <- gsub("Hey: ", "", rownames(mat_consensus_up))
+rownames(mat_consensus_up) <- gsub("CRY1: ", "", rownames(mat_consensus_up))
+rownames(mat_consensus_up) <- gsub("Hlf: ", "", rownames(mat_consensus_up))
+rownames(mat_consensus_up) <- gsub( "unknown function", "unknown", rownames(mat_consensus_up))
+rownames(mat_consensus_up) <- gsub( "pdam_00002776 unknown", "pdam_00002776 Basic helix-loop-helix family member E40", rownames(mat_consensus_up))
+rownames(mat_consensus_up)
+```
+
+### Consensus DEG heatmap
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_consensusDEGs_1.pdf", width = 6.5, height = 2)
+pheatmap(mat_consensus_up, col=mypalette,
+         annotation_col = anno_col[,c("Colony", "Treatment")],
+         #annotation_row = anno_row,
+         show_rownames = TRUE,
+         show_colnames = FALSE,
+         fontsize_row = 6,
+         annotation_colors = anno_colors,
+         annotation_legend = TRUE,
+         annotation_names_col = FALSE,
+         annotation_names_row = FALSE,
+         legend = TRUE,
+         treeheight_col = 8,
+         treeheight_row = 20,
+         cellwidth = 6,
+         cellheight = 15,
+         breaks = seq(-3, 3, by = 0.015),
+         cutree_rows = 1,
+         cutree_cols = 2)
+```
+```{r}
+#pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_consensusDEGs_2.pdf", width = 8.5, height = 3)
+pheatmap(mat_consensus_up, col=geneexpcolors,
+         annotation_col = anno_col[,c("Colony", "Treatment")],
+         annotation_row = anno_row,
+         show_rownames = TRUE,
+         show_colnames = FALSE,
+         fontsize_row = 7,
+         annotation_colors = anno_colors,
+         annotation_legend = TRUE,
+         annotation_names_col = FALSE,
+         annotation_names_row = FALSE,
+         legend = TRUE,
+         treeheight_col = 50,
+         treeheight_row = 20,
+         breaks = seq(0, 15, by = 0.05),
+         cutree_rows = 1,
+         cutree_cols = 2)
+```

@@ -1,0 +1,111 @@
+---
+title: "LPS_DESeq-UpSetR_Pdam"
+author: "Mike Connelly"
+date: "11/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI_LPS-master/")
+```
+## Setup packages and working directories
+```{r packages, error=FALSE, warning=FALSE, message=FALSE}
+library("tidyverse")
+library("DESeq2")
+library("UpSetR")
+```
+
+```{r}
+DEGlists <- list(LPS = ressig_LPS_ctrl$IDGeneInfo)
+DEGlists_geno <- list(HW1 = ressig_HW1_LPS$IDGeneInfo, HW2 = ressig_HW2_LPS$IDGeneInfo, WT1 = ressig_WT1_LPS$IDGeneInfo, WT2 = ressig_WT2_LPS$IDGeneInfo)
+DEGlists_geno_up <- list(HW1 = ressig_HW1_LPS_up$IDGeneInfo, HW2 = ressig_HW2_LPS_up$IDGeneInfo, WT1 = ressig_WT1_LPS_up$IDGeneInfo, WT2 = ressig_WT2_LPS_up$IDGeneInfo)
+DEGlists_geno_dn <- list(HW1 = ressig_HW1_LPS_dn$IDGeneInfo, HW2 = ressig_HW2_LPS_dn$IDGeneInfo, WT1 = ressig_WT1_LPS_dn$IDGeneInfo, WT2 = ressig_WT2_LPS_dn$IDGeneInfo)
+DEGlists_all <- list(LPS = ressig_LPS_ctrl$IDGeneInfo, HW1 = ressig_HW1_LPS$IDGeneInfo, HW2 = ressig_HW2_LPS$IDGeneInfo, WT1 = ressig_WT1_LPS$IDGeneInfo, WT2 = ressig_WT2_LPS$IDGeneInfo)
+```
+```{r}
+upset(fromList(DEGlists_geno))
+```
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/UpSet_LPS.pdf", height = 4.25, width = 11)
+upset(fromList(DEGlists_geno),
+      sets = c("WT2", "WT1", "HW2", "HW1"),
+      keep.order = TRUE,
+      order.by = "degree",
+      group.by = "degree",
+      decreasing = FALSE,
+      empty.intersections = "on",
+      mb.ratio = c(0.6, 0.4),
+      point.size = 3, line.size = 1,
+      text.scale = 2,
+      sets.bar.color = c(colcolors[4], colcolors[3], colcolors[2], colcolors[1]),
+      main.bar.color = c(colcolors[1:4], rep("black", 10), "red"),
+      #shade.color = c("black", "grey"),
+      matrix.dot.alpha = 0.4,
+      set_size.show = TRUE,
+      set_size.scale_max = 80,
+      mainbar.y.max = 80)
+```
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/UpSet_LPS_dec.pdf", height = 4.25, width = 11)
+upset(fromList(DEGlists_geno),
+      sets = c("WT2", "WT1", "HW2", "HW1"),
+      keep.order = TRUE,
+      order.by = "degree",
+      group.by = "degree",
+      decreasing = TRUE,
+      empty.intersections = "on",
+      mb.ratio = c(0.6, 0.4),
+      point.size = 3, line.size = 1,
+      text.scale = 2,
+      sets.bar.color = c(colcolors[4], colcolors[3], colcolors[2], colcolors[1]),
+      main.bar.color = c("red", rep("black", 10), colcolors[1:4]),
+      #shade.color = c("black", "grey"),
+      matrix.dot.alpha = 0.4,
+      set_size.show = TRUE,
+      set_size.scale_max = 80,
+      mainbar.y.max = 80)
+```
+```{r}
+upset(fromList(DEGlists_geno_up), 
+      sets = c("WT2", "WT1", "HW2", "HW1"),
+      keep.order = TRUE,
+      order.by = "degree",
+      #group.by = "sets",
+      decreasing = FALSE,
+      empty.intersections = "on",
+      mb.ratio = c(0.5, 0.5),
+      point.size = 4, line.size = 2,
+      text.scale = c(2, 1.5, 2, 1, 2, 1.5),
+      sets.bar.color = c(colcolors[4], colcolors[3], colcolors[2], colcolors[1]),
+      main.bar.color = c(colcolors[1:4], rep("black", 10), "red"))
+
+upset(fromList(DEGlists_geno_dn), 
+      sets = c("WT2", "WT1", "HW2", "HW1"),
+      keep.order = TRUE,
+      order.by = "degree",
+      #group.by = "sets",
+      decreasing = FALSE,
+      empty.intersections = "on",
+      mb.ratio = c(0.5, 0.5),
+      point.size = 4, line.size = 2,
+      text.scale = c(2, 1.5, 2, 1, 2, 1.5),
+      sets.bar.color = c(colcolors[4], colcolors[3], colcolors[2], colcolors[1]),
+      main.bar.color = c(colcolors[1:4], rep("black", 10), "red"))
+```
+
+```{r}
+upset(fromList(DEGlists_all),
+      sets = c("WT2", "WT1", "HW2", "HW1", "LPS"),
+      keep.order = TRUE,
+      group.by = "degree",
+      order.by = "degree",
+      decreasing = FALSE,
+      empty.intersections = "on",
+      mb.ratio = c(0.5, 0.5),
+      point.size = 4, line.size = 2,
+      text.scale = c(2, 1.5, 2, 1, 2, 1.5))
+      #sets.bar.color = c(colcolors[4], colcolors[3], colcolors[2], colcolors[1]),
+      #main.bar.color = c(colcolors[1:4], rep("black", 10), "red"))
+```
+

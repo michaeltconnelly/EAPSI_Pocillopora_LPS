@@ -1,0 +1,1779 @@
+---
+title: "all-phyloseq"
+output: html
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI-bacteria/all_wd/")
+```
+## Setup packages and working directories
+```{r, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(phyloseq)
+library(vegan)
+library(ape)
+library(DESeq2)
+library(edgeR)
+library(microbiome)
+library(RColorBrewer)
+library(ggpubr)
+library(gplots)
+library(grid)
+library(plyr)
+library(data.table)
+library(DT)
+library(ranacapa)
+library(treemap)
+```
+
+Set theme, colors and shapes for ggplot2 plotting
+```{r, warning=FALSE, message=FALSE}
+theme_set(theme_bw())
+#Treatment color and fill scheme
+condcolors <- c("#0000FF", "#00CCCC", "#FF6600", "#FFCC33", "#CC0033", "#FF66FF")
+condcolors_LPS <- c("#0000FF", "#FF66FF")
+condcolors_anti <- c("#00CCCC", "#0000FF")
+condcolors_heat <- c("#0000FF", "#FF6600")
+condcolors_anti.heat <- c("#FFCC33", "#0000FF")
+condcolors_anti.heat.LPS <- c("#CC0033", "#0000FF")
+condcolors_ctrl.anti.heat <- c("#0000FF", "#00CCCC", "#FF6600")
+#
+condfillcolors <- c("#99FFFF", "#FFFF66", "#FF6666", "#99CCFF", "#FFCC99", "#FFCCFF")
+condfillcolors_LPS <- c("#99CCFF", "#FFCCFF")
+###
+#Colony shape, color and fill scheme
+colshapes <- c(16, 17, 15, 18, 15, 12, 17, 2)
+colcolors <- c("olivedrab3", "springgreen", "deepskyblue", "skyblue", "#FFCCFF", "#FF99FF", "#CCCCFF", "#CC99FF")
+#Modify color vectors for grob editing on facetted plots
+colcolors_double <- c(rep(colcolors[1], 2), rep(colcolors[2], 2), rep(colcolors[3], 2), rep(colcolors[4], 2))
+condfillcolors_LPS_double <- c(rep(c(condfillcolors_LPS[1], condfillcolors_LPS[2]), 4))
+colcolors_pair <- c(rep (colcolors[1:4], 2))
+condfillcolors_LPS_pair <- c(rep(condfillcolors_LPS[1], 4), rep(condfillcolors_LPS[2], 4))
+```
+```{r}
+### Bacteria taxa
+## Phyla
+phyla_colors <- read_csv("~/computing/scripts/EAPSI_LPS-master/taxa_colors/phyla_colors.csv", col_names = c("phylum", "color"))
+phyla_colors$color_hex <- col2hex(phyla_colors$color)
+## Classes
+classes_colors <- read_csv("~/computing/scripts/EAPSI_LPS-master/taxa_colors/classes_colors.csv", col_names = c("phylum", "class", "color"))
+classes_colors$color_hex <- col2hex(classes_colors$color)
+## Orders
+orders_colors <- read_csv("~/computing/scripts/EAPSI_LPS-master/taxa_colors/orders_colors.csv", col_names = c("phylum", "class", "order", "color"))
+## Families
+#families_colors <- read_csv("~/computing/scripts/EAPSI_LPS-master/taxa_colors/families_colors.csv", col_names = c("phylum", "class", "order", "family", "color"))
+## Genera
+#genera_colors <- 
+## Specices
+#species_colors <- 
+```
+
+## Make phyloseq object
+Read in unrareified 99% OTU (ASV) table
+```{r}
+ASV <- read.table("./export_silva/all_silva_feature-table.tsv", row.names = 1, header = TRUE)
+ASV <- t(ASV)
+```
+Read in rareified 99% OTU (ASV) table
+```{r}
+ASV2600 <- read.table("./export_silva/all_silva_rarefied_feature-table.tsv", row.names = 1, header = TRUE)
+ASV2600 <- t(ASV2600)
+```
+Read in taxononomic classification information
+```{r}
+taxonomy <- as.matrix(read.table("./export_silva/taxonomy4.txt", sep = "\t", row.names = 1, header = FALSE, fill = TRUE))
+colnames(taxonomy) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+taxonomy[taxonomy==""] <- NA
+taxdf <- as.data.frame(taxonomy)
+```
+Read in phylogenetic tree, sample metadata and set factor orders
+```{r}
+tree <- read_tree("./export_silva/tree.nwk")
+map <- read.table("./metadata/metadata_all.tsv", sep ="\t", row.names = 1, header = FALSE)
+colnames(map) <- c ("Reef",	"Colony",	"Environment",	"Treatment")
+map$SampleID <- rownames(map)
+map$Reef <- factor(map$Reef, levels = c("Houwan", "Wanglitung", "Outlet", "Houbihu", "controls"), ordered = TRUE)
+map$Colony <- factor(map$Colony, levels = c("HW1", "HW2", "WT1", "WT2", "OT1", "OT2", "HB1", "HB2", "controls"), ordered = TRUE)
+map$Treatment <- factor(map$Treatment, levels = c("control", "Antibiotics", "Heat", "Antibiotics.Heat", "Antibiotics.Heat.LPS", "LPS", "positive", "negative"), ordered = TRUE)
+```
+Create phyloseq objects
+```{r}
+ps <- phyloseq(otu_table(ASV, taxa_are_rows = FALSE),
+               sample_data(map),
+               tax_table(taxonomy),
+               phy_tree(tree))
+ps
+summarize_phyloseq(ps)
+```
+Read in read depth information
+```{r}
+readdepth <- read_csv("./QC/per-sample-fastq-counts.csv")
+colnames(readdepth) <- c("SampleID", "Count")
+readdepth <- merge.data.frame(map, readdepth, by = "SampleID")
+```
+
+## Pre-process and filter phyloseq object
+      prune_samples
+      subset_samples
+      filterfun_sample
+      genefilter_sample
+
+### Stable site control, LPS sample subset
+```{r}
+nsamples(ps)
+samples <- sample_names(ps)
+samples.stable.ctrl.LPS <- grep("[HW][wt][1-2].[3,6][abc]", samples, value = TRUE)
+ps.stable.ctrl.LPS_allASVs <- prune_samples(samples.stable.ctrl.LPS, ps)
+ps.stable.ctrl.LPS_allASVs
+```
+Retain only assigned taxa
+```{r}
+ps_assigned <- subset_taxa(ps, Kingdom!="Unassigned")
+ps_assigned
+```
+```{r}
+nsamples(ps_assigned)
+samples <- sample_names(ps_assigned)
+samples.stable.ctrl.LPS <- grep("[HW][wt][1-2].[3,6][abc]", samples, value = TRUE)
+ps.stable.ctrl.LPS <- prune_samples(samples.stable.ctrl.LPS, ps_assigned)
+ps.stable.ctrl.LPS
+summarize_phyloseq(ps.stable.ctrl.LPS)
+```
+```{r}
+datatable(tax_table(ps.stable.ctrl.LPS))
+```
+```{r}
+ps.stable.ctrl.LPS.rel <- transform_sample_counts(ps.stable.ctrl.LPS, function(x) {x / sum(x)} )
+ps.stable.ctrl.LPS.clr <- microbiome::transform(ps.stable.ctrl.LPS, "clr")
+```
+
+```{r}
+view(otu_table(ps.stable.ctrl.LPS.rel))
+```
+
+
+Prune phyloseq object to sequencing controls
+```{r}
+samples.pos <- grep("Control", samples, value = TRUE)
+samples.pos
+ps.pos <- prune_samples(samples.pos, ps_assigned)
+samples.neg <- grep("Neg", samples, value = TRUE)
+samples.neg
+ps.neg <- prune_samples(samples.neg, ps_assigned)
+ps.controls <- merge_phyloseq(ps.pos, ps.neg)
+ps.controls
+summarize_phyloseq(ps.controls)
+```
+
+Merge stable site control and LPS samples, sequencing control phyloseq objects
+```{r}
+ps.stable.ctrl.LPS.controls <- merge_phyloseq(ps.stable.ctrl.LPS, ps.controls)
+ps.stable.ctrl.LPS.controls
+summarize_phyloseq(ps.stable.ctrl.LPS.controls)
+```
+
+### Read depth QC plot
+```{r}
+pdf(file = "./phyloseq_results/figures/readdepth_ctrl.LPS.pdf", height = 2.5, width = 8.5)
+readdepthLPS <- dplyr::filter(readdepth, Treatment == "control" | Treatment == "LPS" | Treatment == "positive" | Treatment == "negative") %>% dplyr::filter(Reef == "Houwan" | Reef == "Wanglitung" | Reef == "controls") %>% arrange(Treatment)
+readdepthLPS$SampleID <- gsub("\\.6", "_control_", readdepthLPS$SampleID)
+readdepthLPS$SampleID <- gsub("\\.3", "_LPS_", readdepthLPS$SampleID)
+readdepthLPS$Treatment <- factor(readdepthLPS$Treatment, levels = c("control", "LPS", "positive", "negative"), ordered = TRUE)
+readdepthLPS$SampleID <- factor(readdepthLPS$SampleID, levels = readdepthLPS$SampleID, ordered = TRUE)
+
+ggdepth <- ggplot(readdepthLPS, aes(SampleID, Count)) 
+ggdepth +
+  geom_bar(stat = "identity", aes(color = Treatment, fill = Treatment)) +
+  #scale_y_continuous(trans = 'log10') +
+  scale_color_manual(values = c(condcolors_LPS, "red", "black")) +
+  scale_fill_manual(values = c(condfillcolors_LPS, "dark gray", "light gray")) +
+  ylab("16S Read Count") +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ggtitle("Total number of 16S reads per sample")
+```
+
+### Rarefaction curve
+```{r}
+pdf(file = "./phyloseq_results/figures/rarefaction_ctrl.LPS.pdf", height = 2.5, width = 8.5)
+grare <- ggrare(ps.stable.ctrl.LPS.controls, step = 10, color = "Treatment", label = "Colony", plot = FALSE, se = TRUE)
+grare + 
+  scale_color_manual(values = c(condcolors_LPS, "red", "black")) +
+  scale_fill_manual(values = c(condfillcolors_LPS, "dark gray", "light gray")) +
+  ggtitle("Rarefaction curve of 16S amplicon sequence variants")
+```
+
+### Sequencing control ordination plot
+```{r}
+ps.stable.ctrl.LPS.controls.rel <- transform_sample_counts(ps.stable.ctrl.LPS.controls, function(x) {x / sum(x)} )
+
+ps.stable.ctrl.LPS.controls.ord.PCoA.brayP <- ordinate(ps.stable.ctrl.LPS.controls.rel, method="PCoA", distance="bray")
+
+pdf(file = "./phyloseq_results/figures/PCoAs.ellipses.brayP.ctrl.LPS.controls.pdf", height = 5, width = 5.5)
+p1 <- plot_ordination(ps.stable.ctrl.LPS.controls.rel, ps.stable.ctrl.LPS.controls.ord.PCoA.brayP, type = "sample", axes = c(1,2)) +
+  stat_ellipse(aes(fill = Treatment), geom = "polygon", type = "norm", alpha = 0.1) + 
+  geom_point(size = 3, aes(color = Treatment, shape = Colony)) +
+  scale_color_manual(values = c(condcolors_LPS, "red", "black"), name = "Treatment") +
+  scale_fill_manual(values = c(condcolors_LPS, "dark gray", "light gray"), name = "Treatment") +
+  scale_shape_manual(values = c(colshapes, 4), name = "Colony") + 
+  coord_fixed(1) +
+  ggtitle("Principal Coordinates Analysis") +
+  theme(legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8))
+print(p1)
+```
+
+
+## Taxa composition plots
+```{r}
+theme_set(theme_bw())
+```
+### Phylum-level barplots
+```{r, echo=FALSE, message=FALSE, error=FALSE}
+glom_phylum <- tax_glom(ps.stable.ctrl.LPS.rel, taxrank = "Phylum")
+ps.stable.ctrl.LPS_phylum <- psmelt(glom_phylum)
+#ps.stable.ctrl.LPS_phylum <- filter(ps.stable.ctrl.LPS_phylum, Abundance > 0)
+ps.stable.ctrl.LPS_phylum$Phylum <- as.character(ps.stable.ctrl.LPS_phylum$Phylum)
+ps.stable.ctrl.LPS_phylum$Kingdom <- gsub("D_0__", "", ps.stable.ctrl.LPS_phylum$Kingdom)
+ps.stable.ctrl.LPS_phylum$Phylum <- gsub("D_1__", "", ps.stable.ctrl.LPS_phylum$Phylum)
+ps.stable.ctrl.LPS_phylum$Phylum[ps.stable.ctrl.LPS_phylum$Abundance < 0.01] <- "<1% abundance"
+ps.stable.ctrl.LPS_phylum$Phylum <- factor(ps.stable.ctrl.LPS_phylum$Phylum, levels = c("<1% abundance", "Nanoarchaeaeota", "Verrucomicrobia", "Actinobacteria", "Epsilonbacteraeota", "Dependentiae", "Planctomycetes", "Chloroflexi", "Spirochaetes", "Cyanobacteria", "Bacteroidetes", "Proteobacteria"))
+ps.stable.ctrl.LPS_phylum$Sample <- factor(ps.stable.ctrl.LPS_phylum$Sample, levels = c("Hw1.6a", "Hw1.6b", "Hw1.6c", "Hw2.6a", "Hw2.6b", "Hw2.6c", "Wt1.6a", "Wt1.6b", "Wt1.6c", "Wt2.6a", "Wt2.6b", "Wt2.6c", "Hw1.3a", "Hw1.3b", "Hw1.3c", "Hw2.3a", "Hw2.3b", "Hw2.3c", "Wt1.3a", "Wt1.3b", "Wt1.3c", "Wt2.3a", "Wt2.3b", "Wt2.3c"))
+ps.stable.ctrl.LPS_phylum$Sample<- gsub("6", "control.", ps.stable.ctrl.LPS_phylum$Sample)
+ps.stable.ctrl.LPS_phylum$Sample<- gsub("3", "LPS.", ps.stable.ctrl.LPS_phylum$Sample)
+```
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/phyloseq_results/figures/barplot_phylum_ctrl.LPS_ProcB.pdf", height = 3.92, width = 8.5)
+### all samples
+p_phylum1 <- ggplot(data = ps.stable.ctrl.LPS_phylum, aes(x = Sample, y = Abundance, fill = Phylum))
+p_phylum1 <- p_phylum1 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  scale_fill_manual(values = phyla_colors$color) +
+  guides(fill=guide_legend(nrow = 3))
+p_phylum1 <- p_phylum1 +
+  ggtitle("Bacteria Phyla Relative Abundance") + 
+  theme(axis.text.x = element_text(angle = 300, size = 8), 
+        legend.text = element_text(size = 10), legend.position = "bottom")
+print(p_phylum1)
+
+### all samples, facet by treatment
+p_phylum2 <- ggplot(data = ps.stable.ctrl.LPS_phylum, aes(x = Sample, y = Abundance, fill = Phylum))
+p_phylum2 <- p_phylum2 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~Treatment, scales = "free") +
+  scale_fill_manual(values = phyla_colors$color) +
+  guides(fill=guide_legend(nrow = 3))
+p_phylum2 <- p_phylum2 +
+  ggtitle("Bacteria Phyla Relative Abundance") + 
+  theme(axis.text.x = element_text(angle = 300, size = 8), 
+        legend.text = element_text(size = 10), legend.position = "bottom")
+print(p_phylum2)
+g_phylum2 <- ggplot_gtable(ggplot_build(p_phylum2))
+strip_both <- which(grepl('strip-', g_phylum2$layout$name))
+k <- 1
+for (i in strip_both) {
+j <- which(grepl('rect', g_phylum2$grobs[[i]]$grobs[[1]]$childrenOrder))
+g_phylum2$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- condfillcolors_LPS[k]
+k <- k+1
+}
+gp2 <- grid.draw(g_phylum2)
+print(gp2)
+
+### all samples, facet by genotype
+p_phylum3 <- ggplot(data = ps.stable.ctrl.LPS_phylum, aes(x = Sample, y = Abundance, fill = Phylum))
+p_phylum3 <- p_phylum3 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~Colony, scales = "free") +
+  scale_fill_manual(values = phyla_colors$color) +
+  guides(fill=guide_legend(nrow = 3))
+p_phylum3 <- p_phylum3 +
+  ggtitle("Bacteria Phyla Relative Abundance") + 
+  theme(axis.text.x = element_text(angle = 300, size = 8), 
+        legend.text = element_text(size = 10), legend.position = "bottom")
+print(p_phylum3)
+g_phylum3 <- ggplot_gtable(ggplot_build(p_phylum3))
+strip_both <- which(grepl('strip-', g_phylum3$layout$name))
+k <- 1
+for (i in strip_both) {
+j <- which(grepl('rect', g_phylum3$grobs[[i]]$grobs[[1]]$childrenOrder))
+g_phylum3$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- colcolors[k]
+k <- k+1
+}
+gp3 <- grid.draw(g_phylum3)
+print(gp3)
+
+### all samples, facet by genotype and treatment
+p_phylum4 <- ggplot(data = ps.stable.ctrl.LPS_phylum, aes(x = Sample, y = Abundance, fill = Phylum))
+p_phylum4 <- p_phylum4 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~ Colony + Treatment, scales = "free") +
+  scale_fill_manual(values = phyla_colors$color) +
+  guides(fill=guide_legend(nrow = 3))
+p_phylum4 <- p_phylum4 +
+  ggtitle("Bacteria Phyla Relative Abundance") + 
+  theme(axis.text.x = element_text(angle = 300, size = 8), 
+        legend.text = element_text(size = 10), legend.position = "bottom")
+print(p_phylum4)
+g_phylum4 <- ggplot_gtable(ggplot_build(p_phylum4))
+strip_both <- which(grepl('strip-', g_phylum4$layout$name))
+k <- 1
+for (i in strip_both) {
+j <- which(grepl('rect', g_phylum4$grobs[[i]]$grobs[[1]]$childrenOrder))
+g_phylum4$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- colcolors_double[k]
+g_phylum4$grobs[[i]]$grobs[[2]]$children[[j]]$gp$fill <- condfillcolors_LPS_double[k]
+k <- k+1
+}
+gp4 <- grid.draw(g_phylum4)
+print(gp4)
+
+### all samples, facet by treatment and genotype
+p_phylum5 <- ggplot(data = ps.stable.ctrl.LPS_phylum, aes(x = Sample, y = Abundance, fill = Phylum))
+p_phylum5 <- p_phylum5 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~ Treatment + Colony, scales = "free") +
+  scale_fill_manual(values = phyla_colors$color) +
+  guides(fill=guide_legend(nrow = 3))
+p_phylum5 <- p_phylum5 +
+  ggtitle("Bacteria Phyla Relative Abundance") + 
+  theme(axis.text.x = element_text(angle = 300, size = 8), 
+        legend.text = element_text(size = 10), legend.position = "bottom")
+print(p_phylum5)
+g_phylum5 <- ggplot_gtable(ggplot_build(p_phylum5))
+strip_both <- which(grepl('strip-', g_phylum5$layout$name))
+k <- 1
+for (i in strip_both) {
+j <- which(grepl('rect', g_phylum5$grobs[[i]]$grobs[[1]]$childrenOrder))
+g_phylum5$grobs[[i]]$grobs[[2]]$children[[j]]$gp$fill <- colcolors_pair[k]
+g_phylum5$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- condfillcolors_LPS_pair[k]
+k <- k+1
+}
+gp5 <- grid.draw(g_phylum5)
+print(gp5)
+
+### samples collapsed into colonies
+p_phylum6 <- ggplot(data = ps.stable.ctrl.LPS_phylum, aes(x = Colony, y = Abundance, fill = Phylum))
+p_phylum6 <- p_phylum6 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~Treatment) +
+  scale_fill_manual(values = phyla_colors$color) +
+  guides(fill=guide_legend(nrow = 3))
+p_phylum6 <- p_phylum6 +
+  ggtitle("Bacteria Phyla Relative Abundance") + 
+  theme(axis.text.x = element_text(angle = 0, size = 12), 
+        legend.text = element_text(size = 10), legend.position = "bottom",
+        strip.text = element_text(size = 12),
+        strip.background = element_rect(fill = "light grey"))
+print(p_phylum6)
+g_phylum6 <- ggplot_gtable(ggplot_build(p_phylum6))
+strip_both <- which(grepl('strip-', g_phylum2$layout$name))
+k <- 1
+for (i in strip_both) {
+j <- which(grepl('rect', g_phylum6$grobs[[i]]$grobs[[1]]$childrenOrder))
+g_phylum6$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- condfillcolors_LPS[k]
+k <- k+1
+}
+gp6 <- grid.draw(g_phylum6)
+print(gp6)
+
+### samples collapsed into treatments
+p_phylum7 <- ggplot(data = ps.stable.ctrl.LPS_phylum, aes(x = Treatment, y = Abundance, fill = Phylum))
+p_phylum7 <- p_phylum7 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  scale_fill_manual(values = phyla_colors$color) +
+  guides(fill=guide_legend(nrow = 3)) +
+  theme(axis.text.x = element_text(angle = 270))
+p_phylum7
+
+### Pie chart of overall relative abundance
+slices <- c(sum(ps.stable.ctrl.LPS_phylum$Abundance[ps.stable.ctrl.LPS_phylum$Phylum == "<1% abundance"]),
+            sum(ps.stable.ctrl.LPS_phylum$Abundance[ps.stable.ctrl.LPS_phylum$Phylum == "Nanoarcheaeota"]),
+            sum(ps.stable.ctrl.LPS_phylum$Abundance[ps.stable.ctrl.LPS_phylum$Phylum == "Verrucomicrobia"]),
+            sum(ps.stable.ctrl.LPS_phylum$Abundance[ps.stable.ctrl.LPS_phylum$Phylum == "Actinobacteria"]),
+            sum(ps.stable.ctrl.LPS_phylum$Abundance[ps.stable.ctrl.LPS_phylum$Phylum == "Epsilonbacteraeota"]),
+            sum(ps.stable.ctrl.LPS_phylum$Abundance[ps.stable.ctrl.LPS_phylum$Phylum == "Dependentiae"]),
+            sum(ps.stable.ctrl.LPS_phylum$Abundance[ps.stable.ctrl.LPS_phylum$Phylum == "Planctomycetes"]),
+            sum(ps.stable.ctrl.LPS_phylum$Abundance[ps.stable.ctrl.LPS_phylum$Phylum == "Chloroflexi"]),
+            sum(ps.stable.ctrl.LPS_phylum$Abundance[ps.stable.ctrl.LPS_phylum$Phylum == "Spirochaetes"]),
+            sum(ps.stable.ctrl.LPS_phylum$Abundance[ps.stable.ctrl.LPS_phylum$Phylum == "Cyanobacteria"]),
+            sum(ps.stable.ctrl.LPS_phylum$Abundance[ps.stable.ctrl.LPS_phylum$Phylum == "Bacteroidetes"]),
+            sum(ps.stable.ctrl.LPS_phylum$Abundance[ps.stable.ctrl.LPS_phylum$Phylum == "Proteobacteria"])
+            )
+pct <- round((slices/sum(slices)*100), digits = 2)
+lbls <- c("<1% abundance", "Nanoarchaeaeota", "Verrucomicrobia", "Actinobacteria", "Epsilonbacteraeota", "Dependentiae", "Planctomycetes", "Chloroflexi", "Spirochaetes", "Cyanobacteria", "Bacteroidetes", "Proteobacteria")
+pie <- data.frame(slices, lbls, pct)
+pie$lblspct <- paste(pie$lbls, pie$pct)
+pie$lblspct <- paste(pie$lblspct, "%", sep="")
+pie(pie$slices, labels = pie$lblspct, col = phyla_colors$color)
+
+#Want to further sum low-abundance taxa and group into "Other" category to reduce occlusion on pie chart
+#pie$lbls[pie$pct < 1] <- "Other"
+#sum(pie$pct[pie$pct < 1])
+```
+
+### Class-level barplots
+```{r}
+glom_class <- tax_glom(ps.stable.ctrl.LPS.rel, taxrank = "Class")
+ps.stable.ctrl.LPS_class <- psmelt(glom_class)
+ps.stable.ctrl.LPS_class <- filter(ps.stable.ctrl.LPS_class, Abundance > 0)
+ps.stable.ctrl.LPS_class$Class <- as.character(ps.stable.ctrl.LPS_class$Class)
+ps.stable.ctrl.LPS_class$Kingdom <- gsub("D_0__", "", ps.stable.ctrl.LPS_class$Kingdom)
+ps.stable.ctrl.LPS_class$Phylum <- gsub("D_1__", "", ps.stable.ctrl.LPS_class$Phylum)
+ps.stable.ctrl.LPS_class$Class <- gsub("D_2__", "", ps.stable.ctrl.LPS_class$Class)
+ps.stable.ctrl.LPS_class$Phylum[ps.stable.ctrl.LPS_class$Abundance < 0.01] <- "<1% abundance"
+ps.stable.ctrl.LPS_class$Class[ps.stable.ctrl.LPS_class$Abundance < 0.01] <- "<1% abundance"
+ps.stable.ctrl.LPS_class$Phylum <- factor(ps.stable.ctrl.LPS_class$Phylum, levels = c("<1% abundance", "Nanoarchaeaeota", "Verrucomicrobia", "Actinobacteria", "Epsilonbacteraeota", "Dependentiae", "Planctomycetes", "Chloroflexi", "Spirochaetes", "Cyanobacteria", "Bacteroidetes", "Proteobacteria"))
+ps.stable.ctrl.LPS_class$Class <- factor(ps.stable.ctrl.LPS_class$Class, levels = c("<1% abundance", "Verrucomicrobiae", "Campylobacteria", "Actinobacteria", "Babeliae", "Anaerolineae", "Woesearchaeia", "Spirochaetia", "Oxyphotobacteria", "Bacteroidia", "Deltaproteobacteria", "Alphaproteobacteria", "Gammaproteobacteria"))
+ps.stable.ctrl.LPS_class$Sample <- factor(ps.stable.ctrl.LPS_class$Sample, levels = c("Hw1.6a", "Hw1.6b", "Hw1.6c", "Hw2.6a", "Hw2.6b", "Hw2.6c", "Wt1.6a", "Wt1.6b", "Wt1.6c", "Wt2.6a", "Wt2.6b", "Wt2.6c", "Hw1.3a", "Hw1.3b", "Hw1.3c", "Hw2.3a", "Hw2.3b", "Hw2.3c", "Wt1.3a", "Wt1.3b", "Wt1.3c", "Wt2.3a", "Wt2.3b", "Wt2.3c"))
+ps.stable.ctrl.LPS_class$Sample<- gsub("6", "control.", ps.stable.ctrl.LPS_class$Sample)
+ps.stable.ctrl.LPS_class$Sample<- gsub("3", "LPS.", ps.stable.ctrl.LPS_class$Sample)
+```
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/phyloseq_results/figures/barplot_class_ctrl.LPS.pdf", height = 4.5, width = 8.5)
+### all samples
+p_class1 <- ggplot(data = ps.stable.ctrl.LPS_class, aes(x = Sample, y = Abundance, fill = Class))
+p_class1 <- p_class1 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  scale_fill_manual(values = classes_colors$color) +
+  guides(fill=guide_legend(nrow = 4))
+p_class1 <- p_class1 +
+  ggtitle("Bacteria Class Relative Abundance") +
+  theme(axis.text.x = element_text(angle = 300, size = 8), 
+        legend.text = element_text(size = 10), legend.position = "bottom")
+print(p_class1)
+
+### all samples, facet by treatment
+p_class2 <- ggplot(data = ps.stable.ctrl.LPS_class, aes(x = Sample, y = Abundance, fill = Class))
+p_class2 <- p_class2 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~Treatment, scales = "free") +
+  scale_fill_manual(values = classes_colors$color) +
+  guides(fill=guide_legend(nrow = 3))
+p_class2 <- p_class2 +
+  ggtitle("Bacteria Phyla Relative Abundance") + 
+  theme(axis.text.x = element_text(angle = 300, size = 8), 
+        legend.text = element_text(size = 10), legend.position = "bottom")
+print(p_class2)
+g_class2 <- ggplot_gtable(ggplot_build(p_class2))
+strip_both <- which(grepl('strip-', g_class2$layout$name))
+k <- 1
+for (i in strip_both) {
+j <- which(grepl('rect', g_class2$grobs[[i]]$grobs[[1]]$childrenOrder))
+g_class2$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- condfillcolors_LPS[k]
+k <- k+1
+}
+gc2 <- grid.draw(g_class2)
+print(gc2)
+
+### all samples, facet by genotype
+p_class3 <- ggplot(data = ps.stable.ctrl.LPS_class, aes(x = Sample, y = Abundance, fill = Class))
+p_class3 <- p_class3 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~Colony, scales = "free") +
+  scale_fill_manual(values = classes_colors$color) +
+  guides(fill=guide_legend(nrow = 3))
+p_class3 <- p_class3 +
+  ggtitle("Bacteria Phyla Relative Abundance") + 
+  theme(axis.text.x = element_text(angle = 300, size = 8), 
+        legend.text = element_text(size = 10), legend.position = "bottom")
+print(p_class3)
+g_class3 <- ggplot_gtable(ggplot_build(p_class3))
+strip_both <- which(grepl('strip-', g_class3$layout$name))
+k <- 1
+for (i in strip_both) {
+j <- which(grepl('rect', g_class3$grobs[[i]]$grobs[[1]]$childrenOrder))
+g_class3$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- colcolors[k]
+k <- k+1
+}
+gc3 <- grid.draw(g_class3)
+print(gc3)
+
+### all samples, facet by genotype and treatment
+p_class4 <- ggplot(data = ps.stable.ctrl.LPS_class, aes(x = Sample, y = Abundance, fill = Class))
+p_class4 <- p_class4 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~ Colony + Treatment, scales = "free") +
+  scale_fill_manual(values = classes_colors$color) +
+  guides(fill=guide_legend(nrow = 3))
+p_class4 <- p_class4 +
+  ggtitle("Bacteria Phyla Relative Abundance") + 
+  theme(axis.text.x = element_text(angle = 300, size = 8), 
+        legend.text = element_text(size = 10), legend.position = "bottom")
+print(p_class4)
+g_class4 <- ggplot_gtable(ggplot_build(p_class4))
+strip_both <- which(grepl('strip-', g_class4$layout$name))
+k <- 1
+for (i in strip_both) {
+j <- which(grepl('rect', g_class4$grobs[[i]]$grobs[[1]]$childrenOrder))
+g_class4$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- colcolors_double[k]
+g_class4$grobs[[i]]$grobs[[2]]$children[[j]]$gp$fill <- condfillcolors_LPS_double[k]
+k <- k+1
+}
+gc4 <- grid.draw(g_class4)
+print(gc4)
+
+### all samples, facet by treatment and genotype
+p_class5 <- ggplot(data = ps.stable.ctrl.LPS_class, aes(x = Sample, y = Abundance, fill = Class))
+p_class5 <- p_class5 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~ Treatment + Colony, scales = "free") +
+  scale_fill_manual(values = classes_colors$color) +
+  guides(fill=guide_legend(nrow = 3))
+p_class5 <- p_class5 +
+  ggtitle("Bacteria Phyla Relative Abundance") + 
+  theme(axis.text.x = element_text(angle = 300, size = 8), 
+        legend.text = element_text(size = 10), legend.position = "bottom")
+print(p_class5)
+g_class5 <- ggplot_gtable(ggplot_build(p_class5))
+strip_both <- which(grepl('strip-', g_class5$layout$name))
+k <- 1
+for (i in strip_both) {
+j <- which(grepl('rect', g_class5$grobs[[i]]$grobs[[1]]$childrenOrder))
+g_class5$grobs[[i]]$grobs[[2]]$children[[j]]$gp$fill <- colcolors_pair[k]
+g_class5$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- condfillcolors_LPS_pair[k]
+k <- k+1
+}
+gc5 <- grid.draw(g_class5)
+print(gc5)
+
+### samples collapsed into colonies
+p_class6 <- ggplot(data = ps.stable.ctrl.LPS_class, aes(x = Colony, y = Abundance, fill = Class))
+p_class6 <- p_class6 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~Treatment) +
+  scale_fill_manual(values = classes_colors$color) +
+  guides(fill=guide_legend(nrow = 3))
+p_class6 <- p_class6 +
+  ggtitle("Bacteria Class Relative Abundance") + 
+  theme(axis.text.x = element_text(angle = 0, size = 12), 
+        legend.text = element_text(size = 10), legend.position = "bottom",
+        strip.text = element_text(size = 12),
+        strip.background = element_rect(fill = "light grey"))
+print(p_class6)
+g_class6 <- ggplot_gtable(ggplot_build(p_class6))
+strip_both <- which(grepl('strip-', g_class6$layout$name))
+k <- 1
+for (i in strip_both) {
+j <- which(grepl('rect', g_class6$grobs[[i]]$grobs[[1]]$childrenOrder))
+g_class6$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- condfillcolors_LPS[k]
+k <- k+1
+}
+gc6 <- grid.draw(g_class6)
+print(gc6)
+
+### samples collapsed into treatments
+p_class7 <- ggplot(data = ps.stable.ctrl.LPS_class, aes(x = Treatment, y = Abundance, fill = Class))
+p_class7 <- p_class7 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  scale_fill_manual(values = classes_colors$color) +
+  guides(fill=guide_legend(nrow = 15)) +
+  theme(axis.text.x = element_text(angle = 270))
+print(p_class7)
+
+### Pie chart of overall relative abundance
+slices <- c(sum(ps.stable.ctrl.LPS_class$Abundance[ps.stable.ctrl.LPS_class$Class == "<1% abundance"]),
+            sum(ps.stable.ctrl.LPS_class$Abundance[ps.stable.ctrl.LPS_class$Class == "Verrucomicrobiae"]),
+            sum(ps.stable.ctrl.LPS_class$Abundance[ps.stable.ctrl.LPS_class$Class == "Campylobacteria"]),
+            sum(ps.stable.ctrl.LPS_class$Abundance[ps.stable.ctrl.LPS_class$Class == "Actinobacteria"]),
+            sum(ps.stable.ctrl.LPS_class$Abundance[ps.stable.ctrl.LPS_class$Class == "Babeliae"]),
+            sum(ps.stable.ctrl.LPS_class$Abundance[ps.stable.ctrl.LPS_class$Class == "Anaerolineae"]),
+            sum(ps.stable.ctrl.LPS_class$Abundance[ps.stable.ctrl.LPS_class$Class == "Woesearchaeia"]),
+            sum(ps.stable.ctrl.LPS_class$Abundance[ps.stable.ctrl.LPS_class$Class == "Spirochaetia"]),
+            sum(ps.stable.ctrl.LPS_class$Abundance[ps.stable.ctrl.LPS_class$Class == "Oxyphotobacteria"]),
+            sum(ps.stable.ctrl.LPS_class$Abundance[ps.stable.ctrl.LPS_class$Class == "Bacteroidia"]),
+            sum(ps.stable.ctrl.LPS_class$Abundance[ps.stable.ctrl.LPS_class$Class == "Deltaproteobacteria"]),
+            sum(ps.stable.ctrl.LPS_class$Abundance[ps.stable.ctrl.LPS_class$Class == "Alphaproteobacteria"]),
+            sum(ps.stable.ctrl.LPS_class$Abundance[ps.stable.ctrl.LPS_class$Class == "Gammaproteobacteria"])
+            )
+            
+pct <- round((slices/sum(slices)*100), digits = 2)
+lbls <- c("<1% abundance", "Verrucomicrobiae", "Campylobacteria", "Actinobacteria", "Babeliae", "Anaerolineae", "Woesearchaeia", "Spirochaetia", "Oxyphotobacteria", "Bacteroidia", "Deltaproteobacteria", "Alphaproteobacteria", "Gammaproteobacteria")
+pie <- data.frame(slices, lbls, pct)
+pie$lblspct <- paste(pie$lbls, pie$pct)
+pie$lblspct <- paste(pie$lblspct, "%", sep="")
+pie(pie$slices, labels = pie$lblspct, col = classes_colors$color)
+
+#Want to further sum low-abundance taxa and group into "Other" category to reduce occlusion on pie chart
+#pie$lbls[pie$pct < 1] <- "Other"
+#sum(pie$pct[pie$pct < 1])
+```
+
+### Order-level barplots
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/phyloseq_results/figures/barplot_order_ctrl.LPS.pdf", height = 8.5, width = 11)
+glom_order <- tax_glom(ps.stable.ctrl.LPS.rel, taxrank = "Order")
+ps.stable.ctrl.LPS_order <- psmelt(glom_order)
+ps.stable.ctrl.LPS_order$Order <- as.character(ps.stable.ctrl.LPS_order$Order)
+ps.stable.ctrl.LPS_order$Kingdom <- gsub("D_0__", "", ps.stable.ctrl.LPS_order$Kingdom)
+ps.stable.ctrl.LPS_order$Phylum <- gsub("D_1__", "", ps.stable.ctrl.LPS_order$Phylum)
+ps.stable.ctrl.LPS_order$Class <- gsub("D_2__", "", ps.stable.ctrl.LPS_order$Class)
+ps.stable.ctrl.LPS_order$Order <- gsub("D_3__", "", ps.stable.ctrl.LPS_order$Order)
+ps.stable.ctrl.LPS_order$Phylum[ps.stable.ctrl.LPS_order$Abundance < 0.01] <- "<1% abundance"
+ps.stable.ctrl.LPS_order$Class[ps.stable.ctrl.LPS_order$Abundance < 0.01] <- "<1% abundance"
+ps.stable.ctrl.LPS_order$Order[ps.stable.ctrl.LPS_order$Abundance < 0.01] <- "<1% abundance"
+#ps.stable.ctrl.LPS_order <- filter(ps.stable.ctrl.LPS_order, Abundance > 0.005)
+ps.stable.ctrl.LPS_order$Sample <- factor(ps.stable.ctrl.LPS_order$Sample, levels = c("Hw1.3a", "Hw1.3b", "Hw1.3c", "Hw2.3a", "Hw2.3b", "Hw2.3c", "Wt1.3a", "Wt1.3b", "Wt1.3c", "Wt2.3a", "Wt2.3b", "Wt2.3c", "Hw1.6a", "Hw1.6b", "Hw1.6c", "Hw2.6a", "Hw2.6b", "Hw2.6c", "Wt1.6a", "Wt1.6b", "Wt1.6c", "Wt2.6a", "Wt2.6b", "Wt2.6c"))
+
+colCount <- length(unique(ps.stable.ctrl.LPS_order$Order))
+getPalette <- colorRampPalette(brewer.pal(9, "Set1"))
+### all samples
+p_order <- ggplot(data = ps.stable.ctrl.LPS_order, aes(x = Sample, y = Abundance, fill = Order))
+p_order <- p_order +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  scale_fill_manual(values = orders_colors$order) +
+  guides(fill=guide_legend(nrow = 30)) +
+  theme(axis.text.x = element_text(angle = 270))
+p_order
+### samples collapsed into colonies
+p_order <- ggplot(data = ps.stable.ctrl.LPS_order, aes(x = Treatment, y = Abundance, fill = Order))
+p_order <- p_order +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~Colony) +
+  scale_fill_manual(values = orders_colors$order) +
+  guides(fill=guide_legend(nrow = 30)) +
+  theme(axis.text.x = element_text(angle = 270))
+p_order
+### samples collapsed into treatments
+p_order <- ggplot(data = ps.stable.ctrl.LPS_order, aes(x = Treatment, y = Abundance, fill = Order))
+p_order <- p_order +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  scale_fill_manual(values = orders_colors$order) +
+  guides(fill=guide_legend(nrow = 30)) +
+  theme(axis.text.x = element_text(angle = 270))
+p_order
+```
+
+### Family-level barplots
+```{r}
+glom_family <- tax_glom(ps.stable.ctrl.LPS, taxrank = "Family")
+ps.stable.ctrl.LPS_family <- psmelt(glom_family)
+ps.stable.ctrl.LPS_family$Family <- as.character(ps.stable.ctrl.LPS_family$Family)
+#ps.stable.ctrl.LPS_family <- filter(ps.stable.ctrl.LPS_family, Abundance > 0.005)
+ps.stable.ctrl.LPS_family$Family[ps.stable.ctrl.LPS_family$Abundance < 0.01] <- "<1% abundance"
+ps.stable.ctrl.LPS_family$Sample <- factor(ps.stable.ctrl.LPS_family$Sample, levels = c("Hw1.3a", "Hw1.3b", "Hw1.3c", "Hw2.3a", "Hw2.3b", "Hw2.3c", "Wt1.3a", "Wt1.3b", "Wt1.3c", "Wt2.3a", "Wt2.3b", "Wt2.3c", "Hw1.6a", "Hw1.6b", "Hw1.6c", "Hw2.6a", "Hw2.6b", "Hw2.6c", "Wt1.6a", "Wt1.6b", "Wt1.6c", "Wt2.6a", "Wt2.6b", "Wt2.6c"))
+ps.stable.ctrl.LPS_family$Family <- gsub("D_4__", "", ps.stable.ctrl.LPS_family$Family)
+ps.stable.ctrl.LPS_family$Family <- gsub("SCGC AAA286-E23", "", ps.stable.ctrl.LPS_family$Family)
+```
+```{r}
+#pdf(file = "~/computing/scripts/EAPSI_LPS-master/phyloseq_results/figures/barplot_family_ctrl.LPS.pdf", height = 8.5, width = 11)
+colCount <- length(unique(ps.stable.ctrl.LPS_family$Family))
+getPalette <- colorRampPalette(brewer.pal(9, "Set1"))
+### all samples
+p_family1 <- ggplot(data = ps.stable.ctrl.LPS_family, aes(x = Sample, y = Abundance, fill = Family))
+p_family1 <- p_family1 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  scale_fill_manual(values = getPalette(colCount)) +
+  guides(fill=guide_legend(nrow = 30)) +
+  theme(axis.text.x = element_text(angle = 270), legend.text = element_text(size = 4))
+
+### samples collapsed into colonies
+p_family2 <- ggplot(data = ps.stable.ctrl.LPS_family, aes(x = Colony, y = Abundance, fill = Family))
+p_family2 <- p_family2 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~Treatment) +
+### create custom color palette for 39 bacteria families
+  scale_fill_manual(values = c("dark grey", getPalette(colCount))) +
+  guides(fill=guide_legend(nrow = 10)) +
+  ggtitle("Bacteria Family Relative Abundance") +
+  theme(axis.text.x = element_text(angle = 0, size = 12), 
+        legend.text = element_text(size = 10), legend.position = "bottom",
+        strip.text = element_text(size = 12), strip.background = element_rect(fill = "light grey"))
+p_family2
+g_family2 <- ggplot_gtable(ggplot_build(p_family2))
+strip_both <- which(grepl('strip-', g_family2$layout$name))
+k <- 1
+for (i in strip_both) {
+j <- which(grepl('rect', g_family2$grobs[[i]]$grobs[[1]]$childrenOrder))
+g_family2$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- condfillcolors_LPS[k]
+k <- k+1
+}
+gf2 <- grid.draw(g_family2)
+print(gf2)
+
+### samples collapsed into treatments
+p_family3 <- ggplot(data = ps.stable.ctrl.LPS_family, aes(x = Treatment, y = Abundance, fill = Family))
+p_family3 <- p_family3 +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  scale_fill_manual(values = getPalette(colCount)) +
+  guides(fill=guide_legend(nrow = 30)) +
+  theme(axis.text.x = element_text(angle = 270), legend.text = element_text(size = 4))
+p_family3
+```
+
+### Genus-level barplots
+```{r}
+glom_genus <- tax_glom(ps.stable.ctrl.LPS, taxrank = "Genus")
+ps.stable.ctrl.LPS_genus <- psmelt(glom_genus)
+ps.stable.ctrl.LPS_genus$Genus <- as.character(ps.stable.ctrl.LPS_genus$Genus)
+ps.stable.ctrl.LPS_genus <- filter(ps.stable.ctrl.LPS_genus, Abundance > 0.005)
+ps.stable.ctrl.LPS_genus$Genus[ps.stable.ctrl.LPS_genus$Abundance < 0.01] <- "<1% abundance"
+ps.stable.ctrl.LPS_genus$Sample <- factor(ps.stable.ctrl.LPS_genus$Sample, levels = c("Hw1.3a", "Hw1.3b", "Hw1.3c", "Hw2.3a", "Hw2.3b", "Hw2.3c", "Wt1.3a", "Wt1.3b", "Wt1.3c", "Wt2.3a", "Wt2.3b", "Wt2.3c", "Hw1.6a", "Hw1.6b", "Hw1.6c", "Hw2.6a", "Hw2.6b", "Hw2.6c", "Wt1.6a", "Wt1.6b", "Wt1.6c", "Wt2.6a", "Wt2.6b", "Wt2.6c"))
+
+colCount <- length(unique(ps.stable.ctrl.LPS_genus$Genus))
+getPalette <- colorRampPalette(brewer.pal(9, "Set1"))
+```
+```{r}
+### all samples
+pdf(file = "./phyloseq_results/figures/barplot_genus_ctrl.LPS.pdf", height = 8.5, width = 11)
+p_genus <- ggplot(data = ps.stable.ctrl.LPS_genus, aes(x = Sample, y = Abundance, fill = Genus))
+p_genus <- p_genus +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  scale_fill_manual(values = getPalette(colCount)) +
+  guides(fill=guide_legend(nrow = 30)) +
+  theme(axis.text.x = element_text(angle = 270), legend.text = element_text(size = 4))
+p_genus
+###samples collapsed into colonies
+p_genus <- ggplot(data = ps.stable.ctrl.LPS_genus, aes(x = Treatment, y = Abundance, fill = Genus))
+p_genus <- p_genus +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~Colony) +
+  scale_fill_manual(values = getPalette(colCount)) +
+  guides(fill=guide_legend(nrow = 30)) +
+  theme(axis.text.x = element_text(angle = 300), legend.text = element_text(size = 10))
+p_genus
+### samples collapsed into treatments
+p_genus <- ggplot(data = ps.stable.ctrl.LPS_genus, aes(x = Treatment, y = Abundance, fill = Genus))
+p_genus <- p_genus +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  scale_fill_manual(values = getPalette(colCount)) +
+  guides(fill=guide_legend(nrow = 30)) +
+  theme(axis.text.x = element_text(angle = 270), legend.text = element_text(size = 4))
+p_genus
+```
+
+### Species-level barplots
+```{r}
+glom_species <- tax_glom(ps.stable.ctrl.LPS, taxrank = "Species")
+ps.stable.ctrl.LPS_species <- psmelt(glom_species)
+ps.stable.ctrl.LPS_species$Species <- as.character(ps.stable.ctrl.LPS_species$Species)
+ps.stable.ctrl.LPS_species <- filter(ps.stable.ctrl.LPS_species, Abundance > 0.001)
+ps.stable.ctrl.LPS_species$Species[ps.stable.ctrl.LPS_species$Abundance < 0.01] <- "<1% abundance"
+```
+```{r}
+colCount <- length(unique(ps.stable.ctrl.LPS_species$Species))
+getPalette <- colorRampPalette(brewer.pal(9, "Set1"))
+```
+```{r}
+pdf(file = "./phyloseq_results/figures/barplot_species_ctrl.LPS.pdf", height = 8.5, width = 11)
+### all samples
+p_species <- ggplot(data = ps.stable.ctrl.LPS_species, aes(x = Sample, y = Abundance, fill = Species))
+p_species <- p_species +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  scale_fill_manual(values = getPalette(colCount)) +
+  guides(fill=guide_legend(nrow = 30)) +
+  theme(axis.text.x = element_text(angle = 270))
+p_species
+### samples collapsed into colonies
+p_species <- ggplot(data = ps.stable.ctrl.LPS_species, aes(x = Treatment, y = Abundance, fill = Species))
+p_species <- p_species +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~Colony) +
+  scale_fill_manual(values = getPalette(colCount)) +
+  guides(fill=guide_legend(nrow = 30)) +
+  theme(axis.text.x = element_text(angle = 270))
+p_species
+### samples collapsed into treatments
+p_species <- ggplot(data = ps.stable.ctrl.LPS_species, aes(x = Treatment, y = Abundance, fill = Species))
+p_species <- p_species +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  scale_fill_manual(values = getPalette(colCount)) +
+  guides(fill=guide_legend(nrow = 30)) +
+  theme(axis.text.x = element_text(angle = 270))
+p_species
+```
+
+
+```{r}
+taxdf <- as.data.frame(taxonomy)
+length(unique(taxdf$Family))
+unique(taxdf$Family)
+```
+
+### Heatmaps
+```{r}
+plot_heatmap(ps.stable.ctrl.LPS, taxa.label = "Genus", sample.order = c("Hw1.3a", "Hw1.3b", "Hw1.3c", "Hw2.3a", "Hw2.3b", "Hw2.3c", "Wt1.3a", "Wt1.3b", "Wt1.3c", "Wt2.3a", "Wt2.3b", "Wt2.3c", "Hw1.6a", "Hw1.6b", "Hw1.6c", "Hw2.6a", "Hw2.6b", "Hw2.6c", "Wt1.6a", "Wt1.6b", "Wt1.6c", "Wt2.6a", "Wt2.6b", "Wt2.6c"))
+```
+## Alpha diversity plots and statistics
+```{r}
+ps.stable.ctrl.LPS_richness <- estimate_richness(ps.stable.ctrl.LPS)
+alphameasures <- c("Observed", "Chao1", "ACE", "Shannon", "Simpson", "InvSimpson", "Fisher")
+```
+### Overall alpha diversity boxplots
+```{r}
+plot_richness(ps.stable.ctrl.LPS, x="Treatment", color="Treatment", measures = alphameasures) +
+  #facet_grid(~Colony) +
+  geom_boxplot() +
+  geom_point(size = 3, aes(shape = Colony)) +
+  scale_color_manual(values = condcolors_LPS) +
+  scale_shape_manual(values = colshapes)
+```
+```{r}
+pdf(file = "./phyloseq_results/figures/richness_ctrl.LPS.pdf", height = 2.95, width = 4.5)
+plot_richness(ps.stable.ctrl.LPS, x="Treatment", measures=c("Chao1", "Simpson", "Shannon")) +
+  geom_boxplot(aes(fill = Treatment)) +
+  geom_point(aes(color = Treatment, shape = Colony), size = 3, alpha = 0.8) +
+  scale_color_manual(values = condcolors_LPS) +
+  scale_fill_manual(values = condfillcolors_LPS) +
+  scale_shape_manual(values = colshapes, name="Colony") + 
+  ylim(c(0,300)) +
+  xlab(NULL) +
+  ylab(NULL) +
+  ggtitle("Bacteria Community Diversity") +
+  theme(legend.position = "none",
+          axis.text.x = element_text(angle = 0),
+        strip.background = element_blank(),
+        strip.text = element_blank())
+```
+```{r}
+pdf(file = "./phyloseq_results/figures/richness_chao1_ctrl.LPS.pdf", height = 2.7, width = 1.5)
+plot_richness(ps.stable.ctrl.LPS, x="Treatment", measures=c("Chao1")) +
+  geom_boxplot(aes(fill = Treatment)) +
+  geom_point(aes(color = Treatment, shape = Colony), size = 3, alpha = 1) +
+  scale_color_manual(values = condcolors_LPS) +
+  scale_fill_manual(values = condfillcolors_LPS) +
+  scale_shape_manual(values = colshapes, name="Colony") + 
+  ylim(c(0,300)) +
+  xlab(NULL) +
+  ylab("Chao1 ASV richness") +
+  #ggtitle("Bacteria Community Diversity") +
+  theme(legend.position = "none",
+          axis.text.x = element_text(angle = 0),
+        strip.background = element_blank(),
+        strip.text = element_blank())
+```
+```{r}
+pdf(file = "./phyloseq_results/figures/richness_shannon_ctrl.LPS.pdf", height = 2.7, width = 1.5)
+plot_richness(ps.stable.ctrl.LPS, x="Treatment", measures=c("Shannon")) +
+  geom_boxplot(aes(fill = Treatment)) +
+  geom_point(aes(color = Treatment, shape = Colony), size = 3, alpha = 1) +
+  scale_color_manual(values = condcolors_LPS) +
+  scale_fill_manual(values = condfillcolors_LPS) +
+  scale_shape_manual(values = colshapes, name="Colony") + 
+  scale_y_continuous(labels = scales::number_format(accuracy = 0.01), limits = c(0,5)) +
+  xlab(NULL) +
+  ylab("Shannnon diversity index") +
+  #ggtitle("Bacteria Community Diversity") +
+  theme(legend.position = "none",
+          axis.text.x = element_text(angle = 0),
+        strip.background = element_blank(),
+        strip.text = element_blank())
+```
+```{r}
+pdf(file = "./phyloseq_results/figures/richness_simpson_ctrl.LPS.pdf", height = 2.7, width = 1.5)
+plot_richness(ps.stable.ctrl.LPS, x="Treatment", measures=c("Simpson")) +
+  geom_boxplot(aes(fill = Treatment)) +
+  geom_point(aes(color = Treatment, shape = Colony), size = 3, alpha = 1) +
+  scale_color_manual(values = condcolors_LPS) +
+  scale_fill_manual(values = condfillcolors_LPS) +
+  scale_shape_manual(values = colshapes, name="Colony") + 
+  ylim(c(0,1)) +
+  xlab(NULL) +
+  ylab("Simpson eveness index") +
+  #ggtitle("Bacteria Community Diversity") +
+  theme(legend.position = "none",
+          axis.text.x = element_text(angle = 0),
+        strip.background = element_blank(),
+        strip.text = element_blank())
+```
+### Genotype-specific alpha diversity boxplots
+```{r, message=FALSE, warning=FALSE}
+alpha_geno <- function(ps = ps.stable.ctrl.LPS, alphameasure) {
+alphabox <- plot_richness(ps, x = "Colony", measures = alphameasure) +
+  geom_boxplot(aes(fill = Colony)) +
+  geom_point(size = 3, aes(shape = Colony)) +
+  scale_fill_manual(values = colcolors) +
+  scale_shape_manual(values = colshapes)
+print(alphabox)
+}
+for (alphameasure in alphameasures) {
+  alpha_geno(ps.stable.ctrl.LPS, alphameasure)
+}
+```
+Incorporate treatment separation
+```{r, message=FALSE, warning=FALSE}
+alpha_geno <- function(ps = ps.stable.ctrl.LPS, alphameasure) {
+alphabox <- plot_richness(ps, x = "Colony", color = "Treatment", measures = alphameasure) +
+  geom_boxplot(aes(fill = Colony)) +
+  geom_point(size = 3, aes(shape = Colony)) +
+  scale_color_manual(values = condcolors_LPS) +
+  scale_fill_manual(values = colcolors) +
+  scale_shape_manual(values = colshapes)
+print(alphabox)
+}
+for (alphameasure in alphameasures) {
+  alpha_geno(ps.stable.ctrl.LPS, alphameasure)
+}
+```
+
+### Statistical testing of alpha diversity differences
+```{r}
+map1 <- map#[-64,] 
+map1 <- arrange(map1, SampleID)
+map1 <- select(map1, -SampleID)
+map1 <- filter(map1, Treatment=="LPS" | Treatment=="control")
+map1 <- filter(map1, Reef=="Houwan" | Reef=="Wanglitung")
+```
+```{r}
+ps_richness_meta <- cbind(ps.stable.ctrl.LPS_richness, map1)
+```
+Kruskal-Wallis testing for treatment effect
+```{r}
+kruskal.test(data=ps_richness_meta, Observed ~ Treatment)
+kruskal.test(data=ps_richness_meta, Chao1 ~ Treatment)
+kruskal.test(data=ps_richness_meta, ACE ~ Treatment)
+kruskal.test(data=ps_richness_meta, Shannon ~ Treatment)
+kruskal.test(data=ps_richness_meta, Simpson ~ Treatment)
+kruskal.test(data=ps_richness_meta, InvSimpson ~ Treatment)
+kruskal.test(data=ps_richness_meta, Fisher ~ Treatment)
+```
+Kruskal-Wallis testing for reef effect
+```{r}
+kruskal.test(data=ps_richness_meta, Observed ~ Reef)
+kruskal.test(data=ps_richness_meta, Chao1 ~ Reef)
+kruskal.test(data=ps_richness_meta, ACE ~ Reef)
+kruskal.test(data=ps_richness_meta, Shannon ~ Reef)
+kruskal.test(data=ps_richness_meta, Simpson ~ Reef)
+kruskal.test(data=ps_richness_meta, InvSimpson ~ Reef)
+kruskal.test(data=ps_richness_meta, Fisher ~ Reef)
+```
+
+Kruskal-Wallis testing for colony effect
+```{r}
+kruskal.test(data=ps_richness_meta, Observed ~ Colony)
+kruskal.test(data=ps_richness_meta, Chao1 ~ Colony)
+kruskal.test(data=ps_richness_meta, ACE ~ Colony)
+kruskal.test(data=ps_richness_meta, Shannon ~ Colony)
+kruskal.test(data=ps_richness_meta, Simpson ~ Colony)
+kruskal.test(data=ps_richness_meta, InvSimpson ~ Colony)
+kruskal.test(data=ps_richness_meta, Fisher ~ Colony)
+```
+
+## Beta diversity plots and statisitics 
+
+### Euclidean
+```{r}
+ps_euc <- ordinate(ps.stable.ctrl.LPS.rel, "RDA", "euclidean")
+p1 <- plot_ordination(ps.stable.ctrl.LPS.rel, ps_euc, type = "sample", color = "Treatment", shape = "Colony") +
+  stat_ellipse(aes(fill = Treatment), geom = "polygon", type = "norm", alpha = 0.1) + 
+  geom_point(size = 3) +
+  scale_color_manual(values = condcolors_LPS) +
+  scale_fill_manual(values = condcolors_LPS) +
+  scale_shape_manual(values = colshapes) + 
+  ggtitle("PCA of control and LPS samples beta diversity")
+print(p1)
+```
+
+
+### Sample ordinations
+Perform sample ordinations on unprocessed data, relative abundance-transformed data, and centered-log ratio-transformed data
+Euclidean
+Bray-Curtis
+Unweighted UniFrac
+Weighted UniFrac
+
+```{r}
+physeq <- ps.stable.ctrl.LPS.rel
+dist <- "bray"
+ord_meths <- c("DCA", "CCA", "RDA", "DPCoA", "NMDS", "MDS", "PCoA")
+psord <- function(i, physeq, dist){
+        ordi <- ordinate(physeq, method = i, distance = dist)
+        plot_ordination(physeq, ordi, type = "sample", color = "Treatment", shape = "Colony", axes = c(1,2))
+        }
+plist <- llply(as.list(ord_meths), psord, physeq, dist)
+names(plist) <- ord_meths
+
+pdataframe = ldply(plist, function(x){
+    df = x$data[, 1:2]
+    colnames(df) = c("Axis_1", "Axis_2")
+    return(cbind(df, x$data))
+})
+names(pdataframe)[1] = "method"
+
+p <- ggplot(pdataframe, aes(Axis_1, Axis_2, color = Treatment, shape = Colony)) + 
+  geom_point(size = 3) + 
+  scale_color_manual(values = condcolors_LPS) + 
+  scale_fill_manual(values = condcolors_LPS) +
+  scale_shape_manual(values = colshapes) +
+  facet_wrap(~method, scales="free")
+p
+```
+```{r}
+plist[[6]] + 
+  geom_point(size = 3, aes(color = Treatment, shape = Colony)) + 
+  geom_polygon(aes(fill = Colony), alpha = 0.5) +
+  scale_color_manual(values = condcolors_LPS) + 
+  scale_fill_manual(values = colcolors) +
+  scale_shape_manual(values = colshapes) +
+  coord_fixed(1) 
+```
+
+```{r}
+#principal coordinates analysis, bray-curtis
+ps.stable.ctrl.LPS.ord.PCoA.brayP <- ordinate(ps.stable.ctrl.LPS.rel, method="PCoA", distance="bray")
+#principal coordinates analysis, unifrac
+ps.stable.ctrl.LPS.ord.PCoA.unifrac <- ordinate(ps.stable.ctrl.LPS, method="PCoA", distance="unifrac")
+#principal coordinates analysis,weighted unifrac
+ps.stable.ctrl.LPS.ord.PCoA.wunifrac <- ordinate(ps.stable.ctrl.LPS, method="PCoA", distance="wunifrac")
+#NMDS, bray-curtis
+ps.stable.ctrl.LPS.ord.NMDS.brayP <- ordinate(ps.stable.ctrl.LPS, method="NMDS", distance="bray")
+#NMDS, unifrac
+ps.stable.ctrl.LPS.ord.NMDS.unifrac <- ordinate(ps.stable.ctrl.LPS, method="NMDS", distance="unifrac")
+#NMDS, weighted unifrac
+ps.stable.ctrl.LPS.ord.NMDS.wunifrac <- ordinate(ps.stable.ctrl.LPS, method="NMDS", distance="wunifrac")
+```
+
+#### Specific ordination plots for LPS paper
+```{r}
+pdf(file = "./phyloseq_results/figures/PCoAs.ellipses.brayP.ctrl.LPS.pdf", height = 3.5, width = 4)
+p1 <- plot_ordination(ps.stable.ctrl.LPS.rel, ps.stable.ctrl.LPS.ord.PCoA.brayP, type = "sample", axes = c(1,2)) +
+  stat_ellipse(aes(fill = Treatment), geom = "polygon", type = "norm", alpha = 0.1) + 
+  geom_point(size = 3, aes(color = Treatment, shape = Colony)) +
+  scale_color_manual(values = condcolors_LPS, name = "Treatment") +
+  scale_fill_manual(values = condcolors_LPS, name = "Treatment") +
+  scale_shape_manual(values = colshapes, name = "Colony") + 
+  coord_fixed(1) +
+  ggtitle("PCoA") +
+  theme(legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8))
+print(p1)
+```
+```{r}
+pdf(file = "./phyloseq_results/figures/PCoAs.ellipses.brayP.ctrl.LPS_colony.pdf", height = 3, width = 4.5)
+p1 <- plot_ordination(ps.stable.ctrl.LPS, ps.stable.ctrl.LPS.ord.PCoA.brayP, type = "sample", axes = c(1,2)) +
+  stat_ellipse(aes(fill = Colony), geom = "polygon", type = "norm", alpha = 0.5) + 
+  geom_point(size = 3, aes(color = Treatment, shape = Colony)) +
+  scale_color_manual(values = condcolors_LPS, name="Treatment") +
+  scale_fill_manual(values = colcolors, name = "Colony") +
+  scale_shape_manual(values = colshapes, name="Colony") + 
+  coord_fixed(1) +
+  xlab("PCo1: 32% variance") +
+  ylab("PCo2: 16% variance") +
+  ggtitle("Principal Coordinates Analysis") +
+  theme(legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8))
+print(p1)
+```
+```{r}
+args(plot_ordination)
+```
+
+
+### Beta diversity statistical testing
+```{r}
+# Calculate bray curtis distance matrix
+psdist_bray <- phyloseq::distance(ps.stable.ctrl.LPS.rel, method = "bray")
+# Calculate UniFrac distance matrix
+psdist_unifrac <- phyloseq::distance(ps.stable.ctrl.LPS.rel, method = "unifrac")
+# Calculate bray curtis distance matrix
+psdist_wunifrac <- phyloseq::distance(ps.stable.ctrl.LPS.rel, method = "wunifrac")
+
+# make a data frame from the sample_data
+sampledf <- data.frame(sample_data(ps.stable.ctrl.LPS))
+```
+Bray-Curtis Distances
+```{r}
+# PERMDISP tests
+beta <- betadisper(psdist_bray, sampledf$Treatment)
+permutest(beta)
+beta <- betadisper(psdist_bray, sampledf$Reef)
+permutest(beta)
+beta <- betadisper(psdist_bray, sampledf$Colony)
+permutest(beta)
+```
+```{r}
+# Adonis/PERMANOVA tests
+adonis(psdist_bray ~ Treatment, data = sampledf, method = "bray")
+adonis(psdist_bray ~ Reef, data = sampledf, method = "bray")
+adonis(psdist_bray ~ Colony, data = sampledf, method = "bray")
+```
+UniFrac Distances
+```{r}
+# PERMDISP tests
+beta <- betadisper(psdist_unifrac, sampledf$Treatment)
+permutest(beta)
+beta <- betadisper(psdist_unifrac, sampledf$Reef)
+permutest(beta)
+beta <- betadisper(psdist_unifrac, sampledf$Colony)
+permutest(beta)
+```
+```{r}
+# Adonis/PERMANOVA tests
+adonis(psdist_unifrac ~ Treatment, data = sampledf, method = "unifrac")
+adonis(psdist_unifrac ~ Reef, data = sampledf, method = "unifrac")
+adonis(psdist_unifrac ~ Colony, data = sampledf, method = "unifrac")
+```
+Weighted UniFrac Distances
+```{r}
+# PERMDISP tests
+beta <- betadisper(psdist_wunifrac, sampledf$Treatment)
+permutest(beta)
+beta <- betadisper(psdist_wunifrac, sampledf$Reef)
+permutest(beta)
+beta <- betadisper(psdist_wunifrac, sampledf$Colony)
+permutest(beta)
+```
+```{r}
+# Adonis/PERMANOVA tests
+adonis(psdist_wunifrac ~ Treatment, data = sampledf, method = "wunifrac")
+adonis(psdist_wunifrac ~ Reef, data = sampledf, method = "wunifrac")
+adonis(psdist_wunifrac ~ Colony, data = sampledf, method = "wunifrac")
+```
+### Distances to centroids boxplots
+```{r}
+dis <- vegdist(otu_table(ps.stable.ctrl.LPS.clr), method ="bray")
+# PERMDISP2 procedure for the analysis of multivariate 
+#homogeneity of group dispersions (variances).
+mod <- betadisper(dis, sampledf$Treatment)
+mod
+anova(mod)
+## Permutation test for F
+permutest(mod, pairwise = TRUE)
+(mod.HSD <- TukeyHSD(mod))
+## Draw a boxplot of the distances to centroid for each group
+boxplot(mod)
+```
+### ANOSIM
+
+### Taxa ordination plots
+```{r}
+plot_ordination(ps.stable.ctrl.LPS.rel, ps.stable.ctrl.LPS.ord.PCoA.brayP, type = "taxa") +
+  geom_point(aes(color = Phylum)) + 
+  #facet_wrap(~Phylum) +
+  coord_fixed(1)
+```
+
+
+## Core microbiome
+Coral core microbiome cutoffs: 50%, 80%, 90%, 100%
+```{r}
+ps.stable.ctrl.LPS <- transform_sample_counts(ps.stable.ctrl.LPS, function(x) {x / sum(x)} )
+```
+```{r}
+ps.stable.ctrl.LPS.present <- prune_taxa(taxa_sums(ps.stable.ctrl.LPS) > 0, ps.stable.ctrl.LPS)
+ps.stable.ctrl.LPS.present
+summarize_phyloseq(ps.stable.ctrl.LPS.present)
+```
+```{r}
+datatable(otu_table(ps.stable.ctrl.LPS.present))
+```
+```{r}
+core.taxa <- core_members(ps.stable.ctrl.LPS.present, detection = 0.001, prevalence = 80/100)
+#core.taxa
+# Extract the taxonomy table
+taxonomy.present <- as.data.frame(tax_table(ps.stable.ctrl.LPS.present))
+# Subset this taxonomy table to include only core OTUs  
+core_taxa_id <- subset(taxonomy.present, rownames(taxonomy.present) %in% core.taxa)
+DT::datatable(core_taxa_id)
+```
+
+## Differential abundance testing
+
+```{r}
+#Need to comment out the ordered factors in create phyloseq object chunk
+ps_deseq <- phyloseq_to_deseq2(ps.stable.ctrl.LPS, ~ Treatment + Colony)
+```
+```{r}
+dds_phyloseq <- DESeq(ps_deseq)
+```
+```{r}
+deseq.results <- as.data.frame(results(dds_phyloseq))
+deseq.results$taxon <- rownames(results(dds_phyloseq))
+deseq.results.tax <- cbind(deseq.results, taxdf[rownames(taxdf) %in% rownames(deseq.results), 1:7])
+```
+```{r}
+deseq.results.tax <- deseq.results.tax %>%
+                   arrange(pvalue, log2FoldChange)
+sig.deseq.results.tax <- deseq.results.tax %>% filter(pvalue < 0.05 & log2FoldChange > 1.0)
+```
+
+## Genotype-specific analyses - beta diversity, differential abundance testing
+### HW1
+```{r}
+samples.stable.ctrl.LPS.HW1 <- grep("[H][w][1].[3,6][abc]", samples, value = TRUE)
+ps.stable.ctrl.LPS.HW1 <- prune_samples(samples.stable.ctrl.LPS.HW1, ps_assigned)
+ps.stable.ctrl.LPS.HW1
+summarize_phyloseq(ps.stable.ctrl.LPS.HW1)
+ps.stable.ctrl.LPS.HW1.rel <- transform_sample_counts(ps.stable.ctrl.LPS.HW1, function(x) {x / sum(x)} )
+```
+```{r}
+ps_euc <- ordinate(ps.stable.ctrl.LPS.HW1.rel, "RDA", "euclidean")
+p1 <- plot_ordination(ps.stable.ctrl.LPS.rel, ps_euc, type = "sample", color = "Treatment", shape = "Colony") +
+  geom_point(size = 3) +
+  scale_color_manual(values = condcolors_LPS) +
+  scale_fill_manual(values = condcolors_LPS) +
+  scale_shape_manual(values = colshapes) + 
+  ggtitle("PCA of control and LPS samples beta diversity")
+print(p1)
+```
+```{r}
+physeq <- ps.stable.ctrl.LPS.HW1.rel
+dist <- "bray"
+ord_meths <- c("DCA", "CCA", "RDA", "DPCoA", "NMDS", "MDS", "PCoA")
+psord <- function(i, physeq, dist){
+        ordi <- ordinate(physeq, method = i, distance = dist)
+        plot_ordination(physeq, ordi, type = "sample", color = "Treatment", shape = "Colony", axes = c(1,2))
+        }
+plist <- llply(as.list(ord_meths), psord, physeq, dist)
+names(plist) <- ord_meths
+
+pdataframe = ldply(plist, function(x){
+    df = x$data[, 1:2]
+    colnames(df) = c("Axis_1", "Axis_2")
+    return(cbind(df, x$data))
+})
+names(pdataframe)[1] = "method"
+
+p <- ggplot(pdataframe, aes(Axis_1, Axis_2, color = Treatment, shape = Colony)) + 
+  geom_point(size = 3) + 
+  scale_color_manual(values = condcolors_LPS) + 
+  scale_fill_manual(values = condcolors_LPS) +
+  scale_shape_manual(values = colshapes) +
+  facet_wrap(~method, scales="free")
+p
+```
+```{r}
+# Calculate bray curtis distance matrix
+psdist_bray <- phyloseq::distance(ps.stable.ctrl.LPS.HW1.rel, method = "bray")
+# make a data frame from the sample_data
+sampledf <- data.frame(sample_data(ps.stable.ctrl.LPS.HW1))
+# PERMDISP test
+beta <- betadisper(psdist_bray, sampledf$Treatment)
+permutest(beta)
+# Adonis/PERMANOVA test
+adonis(psdist_bray ~ Treatment, data = sampledf, method = "bray")
+```
+```{r}
+#Need to comment out the ordered factors in create phyloseq object chunk
+ps_deseq_HW1 <- phyloseq_to_deseq2(ps.stable.ctrl.LPS.HW1, ~ Treatment)
+```
+```{r}
+dds_phyloseq_HW1 <- DESeq(ps_deseq_HW1)
+```
+```{r}
+deseq.results.HW1 <- as.data.frame(results(dds_phyloseq_HW1))
+deseq.results.HW1$taxon <- rownames(results(dds_phyloseq_HW1))
+deseq.results.tax.HW1 <- cbind(deseq.results.HW1, taxdf[rownames(taxdf) %in% rownames(deseq.results.HW1), 1:7])
+```
+```{r}
+deseq.results.tax.HW1 <- deseq.results.tax.HW1 %>%
+                   arrange(pvalue, log2FoldChange)
+sig.deseq.results.tax.HW1 <- deseq.results.tax.HW1 %>% filter(pvalue < 0.05 & log2FoldChange > 1.0)
+```
+
+### HW2
+```{r}
+samples.stable.ctrl.LPS.HW2 <- grep("[H][w][2].[3,6][abc]", samples, value = TRUE)
+ps.stable.ctrl.LPS.HW2 <- prune_samples(samples.stable.ctrl.LPS.HW2, ps_assigned)
+ps.stable.ctrl.LPS.HW2
+summarize_phyloseq(ps.stable.ctrl.LPS.HW2)
+ps.stable.ctrl.LPS.HW2.rel <- transform_sample_counts(ps.stable.ctrl.LPS.HW2, function(x) {x / sum(x)} )
+```
+```{r}
+ps_euc <- ordinate(ps.stable.ctrl.LPS.HW2.rel, "RDA", "euclidean")
+p1 <- plot_ordination(ps.stable.ctrl.LPS.rel, ps_euc, type = "sample", color = "Treatment", shape = "Colony") +
+  geom_point(size = 3) +
+  scale_color_manual(values = condcolors_LPS) +
+  scale_fill_manual(values = condcolors_LPS) +
+  scale_shape_manual(values = colshapes) + 
+  ggtitle("PCA of control and LPS samples beta diversity")
+print(p1)
+```
+```{r}
+physeq <- ps.stable.ctrl.LPS.HW2.rel
+dist <- "bray"
+ord_meths <- c("DCA", "CCA", "RDA", "DPCoA", "NMDS", "MDS", "PCoA")
+psord <- function(i, physeq, dist){
+        ordi <- ordinate(physeq, method = i, distance = dist)
+        plot_ordination(physeq, ordi, type = "sample", color = "Treatment", shape = "Colony", axes = c(1,2))
+        }
+plist <- llply(as.list(ord_meths), psord, physeq, dist)
+names(plist) <- ord_meths
+
+pdataframe = ldply(plist, function(x){
+    df = x$data[, 1:2]
+    colnames(df) = c("Axis_1", "Axis_2")
+    return(cbind(df, x$data))
+})
+names(pdataframe)[1] = "method"
+
+p <- ggplot(pdataframe, aes(Axis_1, Axis_2, color = Treatment, shape = Colony)) + 
+  geom_point(size = 3) + 
+  scale_color_manual(values = condcolors_LPS) + 
+  scale_fill_manual(values = condcolors_LPS) +
+  scale_shape_manual(values = colshapes) +
+  facet_wrap(~method, scales="free")
+p
+```
+```{r}
+# Calculate bray curtis distance matrix
+psdist_bray <- phyloseq::distance(ps.stable.ctrl.LPS.HW2.rel, method = "bray")
+# make a data frame from the sample_data
+sampledf <- data.frame(sample_data(ps.stable.ctrl.LPS.HW2))
+# PERMDISP test
+beta <- betadisper(psdist_bray, sampledf$Treatment)
+permutest(beta)
+# Adonis/PERMANOVA test
+adonis(psdist_bray ~ Treatment, data = sampledf, method = "bray")
+```
+```{r}
+#Need to comment out the ordered factors in create phyloseq object chunk
+ps_deseq_HW2 <- phyloseq_to_deseq2(ps.stable.ctrl.LPS.HW2, ~ Treatment)
+```
+```{r}
+dds_phyloseq_HW2 <- DESeq(ps_deseq_HW2)
+```
+```{r}
+deseq.results.HW2 <- as.data.frame(results(dds_phyloseq_HW2))
+deseq.results.HW2$taxon <- rownames(results(dds_phyloseq_HW2))
+deseq.results.tax.HW2 <- cbind(deseq.results.HW2, taxdf[rownames(taxdf) %in% rownames(deseq.results.HW2), 1:7])
+```
+```{r}
+deseq.results.tax.HW2 <- deseq.results.tax.HW2 %>%
+                   arrange(pvalue, log2FoldChange)
+sig.deseq.results.tax.HW2 <- deseq.results.tax.HW2 %>% filter(pvalue < 0.05 & log2FoldChange > 1.0)
+```
+
+### WT1
+```{r}
+samples.stable.ctrl.LPS.WT1 <- grep("[W][t][1].[3,6][abc]", samples, value = TRUE)
+ps.stable.ctrl.LPS.WT1 <- prune_samples(samples.stable.ctrl.LPS.WT1, ps_assigned)
+ps.stable.ctrl.LPS.WT1
+summarize_phyloseq(ps.stable.ctrl.LPS.WT1)
+ps.stable.ctrl.LPS.WT1.rel <- transform_sample_counts(ps.stable.ctrl.LPS.WT1, function(x) {x / sum(x)} )
+```
+```{r}
+ps_euc <- ordinate(ps.stable.ctrl.LPS.WT1.rel, "RDA", "euclidean")
+p1 <- plot_ordination(ps.stable.ctrl.LPS.rel, ps_euc, type = "sample", color = "Treatment", shape = "Colony") +
+  geom_point(size = 3) +
+  scale_color_manual(values = condcolors_LPS) +
+  scale_fill_manual(values = condcolors_LPS) +
+  scale_shape_manual(values = colshapes) + 
+  ggtitle("PCA of control and LPS samples beta diversity")
+print(p1)
+```
+```{r}
+physeq <- ps.stable.ctrl.LPS.WT1.rel
+dist <- "bray"
+ord_meths <- c("DCA", "CCA", "RDA", "DPCoA", "NMDS", "MDS", "PCoA")
+psord <- function(i, physeq, dist){
+        ordi <- ordinate(physeq, method = i, distance = dist)
+        plot_ordination(physeq, ordi, type = "sample", color = "Treatment", shape = "Colony", axes = c(1,2))
+        }
+plist <- llply(as.list(ord_meths), psord, physeq, dist)
+names(plist) <- ord_meths
+
+pdataframe = ldply(plist, function(x){
+    df = x$data[, 1:2]
+    colnames(df) = c("Axis_1", "Axis_2")
+    return(cbind(df, x$data))
+})
+names(pdataframe)[1] = "method"
+
+p <- ggplot(pdataframe, aes(Axis_1, Axis_2, color = Treatment, shape = Colony)) + 
+  geom_point(size = 3) + 
+  scale_color_manual(values = condcolors_LPS) + 
+  scale_fill_manual(values = condcolors_LPS) +
+  scale_shape_manual(values = colshapes) +
+  facet_wrap(~method, scales="free")
+p
+```
+```{r}
+# Calculate bray curtis distance matrix
+psdist_bray <- phyloseq::distance(ps.stable.ctrl.LPS.WT1.rel, method = "bray")
+# make a data frame from the sample_data
+sampledf <- data.frame(sample_data(ps.stable.ctrl.LPS.WT1))
+# PERMDISP test
+beta <- betadisper(psdist_bray, sampledf$Treatment)
+permutest(beta)
+# Adonis/PERMANOVA test
+adonis(psdist_bray ~ Treatment, data = sampledf, method = "bray")
+```
+```{r}
+#Need to comment out the ordered factors in create phyloseq object chunk
+ps_deseq_WT1 <- phyloseq_to_deseq2(ps.stable.ctrl.LPS.WT1, ~ Treatment)
+```
+```{r}
+dds_phyloseq_WT1 <- DESeq(ps_deseq_WT1)
+```
+```{r}
+deseq.results.WT1 <- as.data.frame(results(dds_phyloseq_WT1))
+deseq.results.WT1$taxon <- rownames(results(dds_phyloseq_WT1))
+deseq.results.tax.WT1 <- cbind(deseq.results.WT1, taxdf[rownames(taxdf) %in% rownames(deseq.results.WT1), 1:7])
+```
+```{r}
+deseq.results.tax.WT1 <- deseq.results.tax.WT1 %>%
+                   arrange(pvalue, log2FoldChange)
+sig.deseq.results.tax.WT1 <- deseq.results.tax.WT1 %>% filter(pvalue < 0.05 & log2FoldChange > 1.0)
+```
+
+### WT2
+```{r}
+samples.stable.ctrl.LPS.WT2 <- grep("[W][t][2].[3,6][abc]", samples, value = TRUE)
+ps.stable.ctrl.LPS.WT2 <- prune_samples(samples.stable.ctrl.LPS.WT2, ps_assigned)
+ps.stable.ctrl.LPS.WT2
+summarize_phyloseq(ps.stable.ctrl.LPS.WT2)
+ps.stable.ctrl.LPS.WT2.rel <- transform_sample_counts(ps.stable.ctrl.LPS.WT2, function(x) {x / sum(x)} )
+```
+```{r}
+ps_euc <- ordinate(ps.stable.ctrl.LPS.WT2.rel, "RDA", "euclidean")
+p1 <- plot_ordination(ps.stable.ctrl.LPS.rel, ps_euc, type = "sample", color = "Treatment", shape = "Colony") +
+  geom_point(size = 3) +
+  scale_color_manual(values = condcolors_LPS) +
+  scale_fill_manual(values = condcolors_LPS) +
+  scale_shape_manual(values = colshapes) + 
+  ggtitle("PCA of control and LPS samples beta diversity")
+print(p1)
+```
+```{r}
+physeq <- ps.stable.ctrl.LPS.WT2.rel
+dist <- "bray"
+ord_meths <- c("DCA", "CCA", "RDA", "DPCoA", "NMDS", "MDS", "PCoA")
+psord <- function(i, physeq, dist){
+        ordi <- ordinate(physeq, method = i, distance = dist)
+        plot_ordination(physeq, ordi, type = "sample", color = "Treatment", shape = "Colony", axes = c(1,2))
+        }
+plist <- llply(as.list(ord_meths), psord, physeq, dist)
+names(plist) <- ord_meths
+
+pdataframe = ldply(plist, function(x){
+    df = x$data[, 1:2]
+    colnames(df) = c("Axis_1", "Axis_2")
+    return(cbind(df, x$data))
+})
+names(pdataframe)[1] = "method"
+
+p <- ggplot(pdataframe, aes(Axis_1, Axis_2, color = Treatment, shape = Colony)) + 
+  geom_point(size = 3) + 
+  scale_color_manual(values = condcolors_LPS) + 
+  scale_fill_manual(values = condcolors_LPS) +
+  scale_shape_manual(values = colshapes) +
+  facet_wrap(~method, scales="free")
+p
+```
+```{r}
+# Calculate bray curtis distance matrix
+psdist_bray <- phyloseq::distance(ps.stable.ctrl.LPS.WT2.rel, method = "bray")
+# make a data frame from the sample_data
+sampledf <- data.frame(sample_data(ps.stable.ctrl.LPS.WT2))
+# PERMDISP test
+beta <- betadisper(psdist_bray, sampledf$Treatment)
+permutest(beta)
+# Adonis/PERMANOVA test
+adonis(psdist_bray ~ Treatment, data = sampledf, method = "bray")
+```
+```{r}
+#Need to comment out the ordered factors in create phyloseq object chunk
+ps_deseq_WT2 <- phyloseq_to_deseq2(ps.stable.ctrl.LPS.WT2, ~ Treatment)
+```
+```{r}
+dds_phyloseq_WT2 <- DESeq(ps_deseq_WT2)
+```
+```{r}
+deseq.results.WT2 <- as.data.frame(results(dds_phyloseq_WT2))
+deseq.results.WT2$taxon <- rownames(results(dds_phyloseq_WT2))
+deseq.results.tax.WT2 <- cbind(deseq.results.WT2, taxdf[rownames(taxdf) %in% rownames(deseq.results.WT2), 1:7])
+```
+```{r}
+deseq.results.tax.WT2 <- deseq.results.tax.WT2 %>%
+                   arrange(pvalue, log2FoldChange)
+sig.deseq.results.tax.WT2 <- deseq.results.tax.WT2 %>% filter(pvalue < 0.05 & log2FoldChange > 1.0)
+```
+
+## Phylogenetic trees
+
+## Microbial networks
+
+## Examine specific taxa and within-taxa compositions
+      filter_taxa
+      prune_taxa
+      subset_taxa
+      
+### Phylum-level subsets
+```{r}
+ps.stable.ctrl.LPS_proteobacteria <- subset_taxa(ps.stable.ctrl.LPS, Phylum=="D_1__Proteobacteria")
+ps.stable.ctrl.LPS_cyanobacteria <- subset_taxa(ps.stable.ctrl.LPS, Phylum=="D_1__Cyanobacteria")
+ps.stable.ctrl.LPS_bacteroidetes <- subset_taxa(ps.stable.ctrl.LPS, Phylum=="D_1__Bacteroidetes")
+#datatable(tax_table(ps.stable.ctrl.LPS_cyanobacteria))
+```
+```{r}
+glom_class_proteo <- tax_glom(ps.stable.ctrl.LPS_proteobacteria, taxrank = "Class")
+ps.stable.ctrl.LPS_class_proteo <- psmelt(glom_class_proteo)
+ps.stable.ctrl.LPS_class_proteo$Class <- as.character(ps.stable.ctrl.LPS_class_proteo$Class)
+#ps.stable.ctrl.LPS_class_proteo <- filter(ps.stable.ctrl.LPS_class_proteo, Abundance > 0.005)
+#ps.stable.ctrl.LPS_class_proteo$Class[ps.stable.ctrl.LPS_class_proteo$Abundance < 0.01] <- "<1% abundance"
+ps.stable.ctrl.LPS_class_proteo$Sample <- factor(ps.stable.ctrl.LPS_class_proteo$Sample, levels = c("Hw1.6a", "Hw1.6b", "Hw1.6c", "Hw2.6a", "Hw2.6b", "Hw2.6c", "Wt1.6a", "Wt1.6b", "Wt1.6c", "Wt2.6a", "Wt2.6b", "Wt2.6c", "Hw1.3a", "Hw1.3b", "Hw1.3c", "Hw2.3a", "Hw2.3b", "Hw2.3c", "Wt1.3a", "Wt1.3b", "Wt1.3c", "Wt2.3a", "Wt2.3b", "Wt2.3c"))
+
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/phyloseq_results/figures/barplot_class_proteo_ctrl.LPS.pdf", height = 4.5, width = 8.5)
+### all samples, facet by treatment and genotype
+p_class_proteo <- ggplot(data = ps.stable.ctrl.LPS_class_proteo, aes(x = Sample, y = Abundance, fill = Class))
+p_class_proteo <- p_class_proteo +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  facet_grid(~ Treatment + Colony, scales = "free") +
+  scale_fill_manual(values = classes_colors$color[11:13]) +
+  guides(fill=guide_legend(nrow = 3))
+p_class_proteo <- p_class_proteo +
+  ggtitle("Relative Abundance of Bacteria Classes (Phylum Proteobacteria)") + 
+  theme(axis.text.x = element_text(angle = 300, size = 8), 
+        legend.text = element_text(size = 10), legend.position = "bottom")
+print(p_class_proteo)
+g_class_proteo <- ggplot_gtable(ggplot_build(p_class_proteo))
+strip_both <- which(grepl('strip-', g_class_proteo$layout$name))
+k <- 1
+for (i in strip_both) {
+j <- which(grepl('rect', g_class_proteo$grobs[[i]]$grobs[[1]]$childrenOrder))
+g_class_proteo$grobs[[i]]$grobs[[2]]$children[[j]]$gp$fill <- colcolors_pair[k]
+g_class_proteo$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- condfillcolors_LPS_pair[k]
+k <- k+1
+}
+gc_proteo <- grid.draw(g_class_proteo)
+print(gc_proteo)
+### Pie chart
+slices <- c(sum(ps.stable.ctrl.LPS_class_proteo$Abundance[ps.stable.ctrl.LPS_class_proteo$Class == "D_2__Alphaproteobacteria"]),
+            sum(ps.stable.ctrl.LPS_class_proteo$Abundance[ps.stable.ctrl.LPS_class_proteo$Class == "D_2__Deltaproteobacteria"]),
+            sum(ps.stable.ctrl.LPS_class_proteo$Abundance[ps.stable.ctrl.LPS_class_proteo$Class == "D_2__Gammaproteobacteria"]))
+pct <- round((slices/sum(slices)*100), digits = 1)
+lbls <- c("Alphaproteobacteria", "Deltaproteobacteria", "Gammaproteobacteria")
+lbls <- paste(lbls, pct)
+lbls <- paste(lbls, "%", sep="")
+pie(slices, labels = lbls, col = classes_colors$color[11:13])
+```
+
+Cyanobacteria dominated by Class Oxyphotobacteria
+Bacteroidetes dominated by Class Bacteroidea
+
+### Class-level subsets
+```{r}
+ps.stable.ctrl.LPS_alphaproteobacteria <- subset_taxa(ps.stable.ctrl.LPS_proteobacteria, Class=="D_2__Alphaproteobacteria")
+ps.stable.ctrl.LPS_gammaproteobacteria <- subset_taxa(ps.stable.ctrl.LPS_proteobacteria, Class=="D_2__Gammaproteobacteria")
+```
+
+```{r}
+ps.stable.ctrl.LPS_alphaproteobacteria <- transform_sample_counts(ps.stable.ctrl.LPS_alphaproteobacteria, function(x) {x / sum(x)} )
+glom_order <- tax_glom(ps.stable.ctrl.LPS_alphaproteobacteria, taxrank = "Order")
+ps.stable.ctrl.LPS_order <- psmelt(glom_order)
+ps.stable.ctrl.LPS_order$Order <- as.character(ps.stable.ctrl.LPS_order$Order)
+#ps.stable.ctrl.LPS_order <- filter(ps.stable.ctrl.LPS_order, Abundance > 0.005)
+ps.stable.ctrl.LPS_order$Order[ps.stable.ctrl.LPS_order$Abundance < 0.05] <- "<5% abundance"
+ps.stable.ctrl.LPS_order$Sample <- factor(ps.stable.ctrl.LPS_order$Sample, levels = c("Hw1.3a", "Hw1.3b", "Hw1.3c", "Hw2.3a", "Hw2.3b", "Hw2.3c", "Wt1.3a", "Wt1.3b", "Wt1.3c", "Wt2.3a", "Wt2.3b", "Wt2.3c", "Hw1.6a", "Hw1.6b", "Hw1.6c", "Hw2.6a", "Hw2.6b", "Hw2.6c", "Wt1.6a", "Wt1.6b", "Wt1.6c", "Wt2.6a", "Wt2.6b", "Wt2.6c"))
+
+colCount <- length(unique(ps.stable.ctrl.LPS_order$Order))
+getPalette <- colorRampPalette(brewer.pal(9, "Set1"))
+
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/phyloseq_results/figures/barplot_order_alphaproteo_ctrl.LPS.pdf", height = 4.5, width = 8.5)
+### all samples
+p_order <- ggplot(data = ps.stable.ctrl.LPS_order, aes(x = Sample, y = Abundance, fill = Order))
+p_order <- p_order +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  scale_fill_manual(values = c("dark grey", getPalette(colCount))) +
+  guides(fill=guide_legend(nrow = 30)) +
+  theme(axis.text.x = element_text(angle = 270))
+p_order
+
+slices <- c(sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "<5% abundance"]),
+            sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "D_3__Caulobacterales"]),
+            sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "D_3__Rhizobiales"]),
+            sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "D_3__Rhodobacterales"]),
+            sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "D_3__Rhodospirillales"]))
+pct <- round((slices/sum(slices)*100), digits = 1)
+lbls <- c("<5% abundance", "Caulobacterales", "Rhizobiales", "Rhodobacterales", "Rhodospirillales")
+lbls <- paste(lbls, pct)
+lbls <- paste(lbls, "%", sep="")
+pie(slices, labels = lbls, col = c("dark grey", getPalette(colCount)))
+```
+```{r}
+ps.stable.ctrl.LPS_gammaproteobacteria <- transform_sample_counts(ps.stable.ctrl.LPS_gammaproteobacteria, function(x) {x / sum(x)} )
+glom_order <- tax_glom(ps.stable.ctrl.LPS_gammaproteobacteria, taxrank = "Order")
+ps.stable.ctrl.LPS_order <- psmelt(glom_order)
+ps.stable.ctrl.LPS_order$Order <- as.character(ps.stable.ctrl.LPS_order$Order)
+#ps.stable.ctrl.LPS_order <- filter(ps.stable.ctrl.LPS_order, Abundance > 0.005)
+ps.stable.ctrl.LPS_order$Order[ps.stable.ctrl.LPS_order$Abundance < 0.05] <- "<5% abundance"
+ps.stable.ctrl.LPS_order$Sample <- factor(ps.stable.ctrl.LPS_order$Sample, levels = c("Hw1.3a", "Hw1.3b", "Hw1.3c", "Hw2.3a", "Hw2.3b", "Hw2.3c", "Wt1.3a", "Wt1.3b", "Wt1.3c", "Wt2.3a", "Wt2.3b", "Wt2.3c", "Hw1.6a", "Hw1.6b", "Hw1.6c", "Hw2.6a", "Hw2.6b", "Hw2.6c", "Wt1.6a", "Wt1.6b", "Wt1.6c", "Wt2.6a", "Wt2.6b", "Wt2.6c"))
+
+colCount <- length(unique(ps.stable.ctrl.LPS_order$Order))
+getPalette <- colorRampPalette(brewer.pal(9, "Set1"))
+
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/phyloseq_results/figures/barplot_order_gammaproteo_ctrl.LPS.pdf", height = 4.5, width = 8.5)
+### all samples
+p_order <- ggplot(data = ps.stable.ctrl.LPS_order, aes(x = Sample, y = Abundance, fill = Order))
+p_order <- p_order +
+  geom_bar(aes(), stat = "identity", position = "fill") +
+  scale_fill_manual(values = c("dark grey", getPalette(colCount))) +
+  guides(fill=guide_legend(nrow = 30)) +
+  theme(axis.text.x = element_text(angle = 270))
+p_order
+
+slices <- c(sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "<5% abundance"]),
+            sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "D_3__Alteromonadales"]),
+            sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "D_3__Betaproteobacteriales"]),
+            sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "D_3__Cellvibrionales"]),
+            sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "D_3__Coxiellales"]),
+            sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "D_3__Francisellales"]),
+            sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "D_3__JTB23"]),
+            sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "D_3__KI89A clade"]),
+            sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "D_3__Oceanospirillales"]),
+            sum(ps.stable.ctrl.LPS_order$Abundance[ps.stable.ctrl.LPS_order$Order == "D_3__Salinisphaerales"]))
+pct <- round((slices/sum(slices)*100), digits = 1)
+lbls <- c("<5% abundance", "Alteromonadales", "Betaproteobacteriales", "Cellvibrionales", "Coxiellales", "Francisellales", "JTB23", "KI89A clade", "Oceanospirillales", "Salinisphaerales")
+lbls <- paste(lbls, pct)
+lbls <- paste(lbls, "%", sep="")
+pie(slices, labels = lbls, col = c("dark grey", getPalette(colCount)))
+```
+
+### Order-level subsets
+```{r}
+
+```
+
+### Family-level subsets
+
+```{r}
+ps.stable.ctrl.LPS_endozoicomonas <- subset_taxa(ps.stable.ctrl.LPS, Family=="D_4__Endozoicomonadaceae")
+ps.stable.ctrl.LPS_endozoicomonas
+summarize_phyloseq(ps.stable.ctrl.LPS_endozoicomonas)
+```
+
+### Genus-level subsets (Endozoicomonas)
+Prevalence and relative abundance of Endozoicomonas across colonies, then treatments
+```{r}
+ps.stable.ctrl.LPS_endozoicomonas <- subset_taxa(ps.stable.ctrl.LPS, Genus=="D_5__Endozoicomonas")
+ps.stable.ctrl.LPS_endozoicomonas
+summarize_phyloseq(ps.stable.ctrl.LPS_endozoicomonas)
+ps.stable.ctrl.LPS_endozoicomonas <- transform_sample_counts(ps.stable.ctrl.LPS_endozoicomonas, function(x) {x / sum(x)} )
+```
+```{r}
+glom_endo <- tax_glom(ps.stable.ctrl.LPS_endozoicomonas, taxrank = "Genus")
+ps.stable.ctrl.LPS_endo <- psmelt(glom_endo)
+ps.stable.ctrl.LPS_endo$Genus <- as.character(ps.stable.ctrl.LPS_endo$Genus)
+view(ps.stable.ctrl.LPS_endo)
+```
+
+```{r}
+sum(ps.stable.ctrl.LPS_genus$Abundance[ps.stable.ctrl.LPS_genus$Genus=="D_5__Endozoicomonas"])/sum(ps.stable.ctrl.LPS_genus$Abundance)
+```
+```{r}
+sum(ps.stable.ctrl.LPS_genus$Abundance[ps.stable.ctrl.LPS_genus$Genus=="D_5__Endozoicomonas" & ps.stable.ctrl.LPS_genus$Colony=="HW1"])/sum(ps.stable.ctrl.LPS_genus$Abundance[ps.stable.ctrl.LPS_genus$Colony=="HW1"])
+
+sum(ps.stable.ctrl.LPS_genus$Abundance[ps.stable.ctrl.LPS_genus$Genus=="D_5__Endozoicomonas" & ps.stable.ctrl.LPS_genus$Colony=="HW2"])/sum(ps.stable.ctrl.LPS_genus$Abundance[ps.stable.ctrl.LPS_genus$Colony=="HW2"])
+
+sum(ps.stable.ctrl.LPS_genus$Abundance[ps.stable.ctrl.LPS_genus$Genus=="D_5__Endozoicomonas" & ps.stable.ctrl.LPS_genus$Colony=="WT1"])/sum(ps.stable.ctrl.LPS_genus$Abundance[ps.stable.ctrl.LPS_genus$Colony=="WT1"])
+
+sum(ps.stable.ctrl.LPS_genus$Abundance[ps.stable.ctrl.LPS_genus$Genus=="D_5__Endozoicomonas" & ps.stable.ctrl.LPS_genus$Colony=="WT2"])/sum(ps.stable.ctrl.LPS_genus$Abundance[ps.stable.ctrl.LPS_genus$Colony=="WT2"])
+```
+
+```{r}
+relative_endo <- function(samp) {
+rel <- sum(ps.stable.ctrl.LPS_genus$Abundance[ps.stable.ctrl.LPS_genus$Genus=="D_5__Endozoicomonas" & ps.stable.ctrl.LPS_genus$Sample==samp])/sum(ps.stable.ctrl.LPS_genus$Abundance[ps.stable.ctrl.LPS_genus$Sample==samp])
+print(rel)
+}
+relative_endo1 <- function(sample) {
+rel <- sum(ps.stable.ctrl.LPS_genus$Abundance[ps.stable.ctrl.LPS_genus$Genus=="D_5__Endozoicomonas" & ps.stable.ctrl.LPS_genus$Sample==samp])/sum(ps.stable.ctrl.LPS_genus$Abundance[ps.stable.ctrl.LPS_genus$Sample==samp])
+rel
+}
+```
+```{r}
+samps <- c("Hw1.6a", "Hw1.6b", "Hw1.6c", "Hw2.6a", "Hw2.6b", "Hw2.6c", "Wt1.6a", "Wt1.6b", "Wt1.6c", "Wt2.6a", "Wt2.6b", "Wt2.6c", "Hw1.3a", "Hw1.3b", "Hw1.3c", "Hw2.3a", "Hw2.3b", "Hw2.3c", "Wt1.3a", "Wt1.3b", "Wt1.3c", "Wt2.3a", "Wt2.3b", "Wt2.3c")
+for (samp in endorel$samps){
+relative_endo(samp)
+}
+```
+```{r}
+endorel <- read.csv("~/computing/scripts/EAPSI_LPS-master/phyloseq_results/endorel.csv", header = FALSE, col.names = c("SampleID", "Abundance"))
+endorel <- endorel %>% arrange(SampleID)
+endorel$Reef <- sampledf$Reef
+endorel$Colony <- sampledf$Colony
+endorel$Treatment <- sampledf$Treatment
+```
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/phyloseq_results/figures/endorel.pdf", height = 3, width = 3.93)
+gaplot <- ggplot(endorel, aes(x=Treatment, y=Abundance, color=Treatment)) +
+  geom_boxplot(aes(fill = Treatment), show.legend = FALSE) +
+  geom_point(aes(shape = Colony), size = 3, show.legend = FALSE) +
+  facet_grid(.~Colony) +
+  scale_color_manual(values=condcolors_LPS) + scale_fill_manual(values = condfillcolors_LPS) + scale_shape_manual(values = colshapes) +
+  #scale_y_continuous(trans = log2_trans(), breaks = trans_breaks("log2", function(x) 2^x), labels = trans_format("log2", math_format(2^.x)))  + 
+  ggtitle("Relative Abundance of Endozoicomonas") +
+  #ylab("Relative Abundance of Endozoicomonas bacteria") +
+  theme(plot.title = element_text(size = 12),
+        plot.subtitle = element_text(size = 6),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.y = element_text(size = 10),
+        axis.text.y = element_text(angle = 0, size = 10),
+        strip.text = element_text(size = 10),
+        strip.background = element_rect(fill = "light grey"))
+print(gaplot)
+###
+g_aplot <- ggplot_gtable(ggplot_build(gaplot))
+strip_both <- which(grepl('strip-', g_aplot$layout$name))
+k <- 1
+for (i in strip_both) {
+j <- which(grepl('rect', g_aplot$grobs[[i]]$grobs[[1]]$childrenOrder))
+g_aplot$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- colcolors[k]
+k <- k+1
+}
+gap <- grid.draw(g_aplot)
+print(gap)
+```
+
+
+### Treemap of hierarchical bacteria community composition in overall dataset
+```{r}
+### Treemap data setup
+glom_order <- tax_glom(ps.stable.ctrl.LPS.rel, taxrank = "Order")
+ps.stable.ctrl.LPS_order <- psmelt(glom_order)
+ps.stable.ctrl.LPS_order$Order <- as.character(ps.stable.ctrl.LPS_order$Order)
+ps.stable.ctrl.LPS_order$Kingdom <- gsub("D_0__", "", ps.stable.ctrl.LPS_order$Kingdom)
+ps.stable.ctrl.LPS_order$Phylum <- gsub("D_1__", "", ps.stable.ctrl.LPS_order$Phylum)
+ps.stable.ctrl.LPS_order$Class <- gsub("D_2__", "", ps.stable.ctrl.LPS_order$Class)
+ps.stable.ctrl.LPS_order$Order <- gsub("D_3__", "", ps.stable.ctrl.LPS_order$Order)
+ps.stable.ctrl.LPS_order$Phylum[ps.stable.ctrl.LPS_order$Abundance < 0.01] <- ""
+ps.stable.ctrl.LPS_order$Class[ps.stable.ctrl.LPS_order$Abundance < 0.01] <- "<1% abundance"
+ps.stable.ctrl.LPS_order$Order[ps.stable.ctrl.LPS_order$Abundance < 0.01] <- ""
+ps.stable.ctrl.LPS_order <- filter(ps.stable.ctrl.LPS_order, Abundance > 0.005)
+ps.stable.ctrl.LPS_order$Sample <- factor(ps.stable.ctrl.LPS_order$Sample, levels = c("Hw1.3a", "Hw1.3b", "Hw1.3c", "Hw2.3a", "Hw2.3b", "Hw2.3c", "Wt1.3a", "Wt1.3b", "Wt1.3c", "Wt2.3a", "Wt2.3b", "Wt2.3c", "Hw1.6a", "Hw1.6b", "Hw1.6c", "Hw2.6a", "Hw2.6b", "Hw2.6c", "Wt1.6a", "Wt1.6b", "Wt1.6c", "Wt2.6a", "Wt2.6b", "Wt2.6c"))
+
+treedat <- ps.stable.ctrl.LPS_order %>% select(Abundance, Phylum, Class, Order) %>% group_by(Order)
+treedata <- aggregate(Abundance ~ Phylum + Class + Order, treedat, sum)
+treedata <- treedata %>% dplyr::arrange(desc(Abundance), .by_group = TRUE) %>%
+  group_by_(.dots = c("Phylum", "Class")) %>%
+  dplyr::arrange(desc(Abundance), .by_group = TRUE) 
+treedata$color <- orders_colors$color
+treedata$color_hex <- col2hex(treedata$color)
+```
+```{r}
+pdf(file = "~/computing/scripts/EAPSI_LPS-master/phyloseq_results/figures/treemap_order_ctrl.LPS.pdf", height = 3, width = 4.5)
+### Treemap graphial parameters
+treemap(treedata, index = c("Phylum", "Class", "Order"), vSize = "Abundance", type = "color",
+        vColor = "color",
+        fontsize.labels=c(14,12,8),
+        fontcolor.labels=c("white","black", "black"),    
+        fontface.labels=c(2,2,3),
+        border.col = c("black", "black", "black"),
+        border.lwds = c(8,2,1),
+        bg.labels=c("transparent"),         
+        align.labels=list(c("center", "top"), c("center", "center"), c("right", "bottom")), 
+        overlap.labels=0.5,                      
+        inflate.labels=F,
+        #palette = dftax$color,
+        title = "Overall bacteria relative abundance",
+        fontsize.title = 12
+        )
+```
+```{r}
+uord <- data.frame(unique(ps.stable.ctrl.LPS_order$Order))
+dftax <- treedat[match(unique(ps.stable.ctrl.LPS_order$Order), ps.stable.ctrl.LPS_order$Order), ]
+dftax <- dftax %>%
+  dplyr::arrange(desc(Abundance), .by_group = TRUE) %>%
+  group_by_(.dots = c("Phylum", "Class")) %>%
+  dplyr::arrange(desc(Abundance), .by_group = TRUE) 
+dftax$color <- getPalette(colCount)
+```
+```{r}
+
+```
+
+
+## Summary
+```{r}
+sessionInfo()
+```
+

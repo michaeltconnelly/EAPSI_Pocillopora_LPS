@@ -1,0 +1,253 @@
+---
+title: "LPS_DESeq-venn_Pdam"
+author: "Mike Connelly"
+date: "11/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI_HW-WT-master/")
+```
+
+# Colony-specific DEG venn intersects
+```{r}
+sumDEGsHW <- union(ressig_HW1_LPS$IDGeneInfo, ressig_HW2_LPS$IDGeneInfo)
+sumDEGsWT <- union(ressig_WT1_LPS$IDGeneInfo, ressig_WT2_LPS$IDGeneInfo)
+sumDEGs <- union(sumDEGsHW, sumDEGsWT)
+length(sumDEGs)
+
+##Pairwise
+HW1_HW2 <- intersect(ressig_HW1_LPS$IDGeneInfo, ressig_HW2_LPS$IDGeneInfo)
+HW1_WT1 <- intersect(ressig_HW1_LPS$IDGeneInfo, ressig_WT1_LPS$IDGeneInfo)
+HW1_WT2 <- intersect(ressig_HW1_LPS$IDGeneInfo, ressig_WT2_LPS$IDGeneInfo)
+HW2_WT1 <- intersect(ressig_HW2_LPS$IDGeneInfo, ressig_WT1_LPS$IDGeneInfo)
+HW2_WT2 <- intersect(ressig_HW2_LPS$IDGeneInfo, ressig_WT2_LPS$IDGeneInfo)
+WT1_WT2 <- intersect(ressig_WT1_LPS$IDGeneInfo, ressig_WT2_LPS$IDGeneInfo)
+##Triple
+HW1_HW2_WT1 <- intersect(HW1_HW2, ressig_WT1_LPS$IDGeneInfo)
+HW1_HW2_WT2 <- intersect(HW1_HW2, ressig_WT2_LPS$IDGeneInfo)
+HW1_WT1_WT2 <- intersect(WT1_WT2, ressig_HW1_LPS$IDGeneInfo)
+HW2_WT1_WT2 <- intersect(WT1_WT2, ressig_HW2_LPS$IDGeneInfo)
+##Quadruple
+HW12_WT12 <- intersect(HW1_HW2, WT1_WT2)
+```
+```{r}
+setdiff(HW1_WT2, HW12_WT12)
+```
+```{r}
+setdiff(WT1_WT2, HW12_WT12)
+```
+```{r}
+setdiff(ressig_WT2_LPS$IDGeneInfo, sumDEGsHW)
+```
+```{r}
+library(VennDiagram)
+pdf("~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/LPS_colony_Venn2.pdf", height = 3, width = 3)
+vp = viewport(height = unit(2, "in"),  width = unit(2, "in"))
+grid.newpage()
+grid.rect(vp = vp, gp = gpar(col = "white"))
+
+#HW1, WT2, HW2, WT1
+LPS_venn <- draw.quad.venn(area1 = length(ressig_HW1_LPS$IDGeneInfo),
+               area2 = length(ressig_WT2_LPS$IDGeneInfo),
+               area3 = length(ressig_HW2_LPS$IDGeneInfo),
+               area4 = length(ressig_WT1_LPS$IDGeneInfo),
+               n12 = length(HW1_WT2),
+               n13 = length(HW1_HW2),
+               n14 = length(HW1_WT1),
+               n23 = length(HW2_WT2),
+               n24 = length(WT1_WT2),
+               n34 = length(HW2_WT1),
+               n123 = length(HW1_HW2_WT2),
+               n124 = length(HW1_WT1_WT2),
+               n134 = length(HW1_HW2_WT1),
+               n234 = length(HW2_WT1_WT2),
+               n1234 = length(HW12_WT12),
+               category = c("HW1", "WT2", "HW2", "WT1"),
+               fill = c("olivedrab3", "skyblue", "springgreen", "deepskyblue"),
+               lwd = rep(1,4),
+               cat.cex = rep(1.4, 4),
+               cat.fontfamily = rep("Arial", 4),
+               cat.fontface = rep("plain", 4),
+               alpha = c(0.3,0.3,0.3,0.3),
+               cex = c(rep(1.4,5), 3, rep(1.4, 9)),
+               fontface = c(rep("plain", 5), "bold", rep("plain", 9)),
+               fontfamily = c(rep("Arial", 15)),
+               label.col = c(rep("black", 5), "red", rep("black", 9)),
+               print.mode = "raw",
+               sigdigs = 2,
+               scaled = TRUE
+)
+grid.draw(LPS_venn)
+```
+
+# Colony-specific up Venn
+```{r}
+sumDEGsHW <- union(ressig_HW1_LPS_up$IDGeneInfo, ressig_HW2_LPS_up$IDGeneInfo)
+sumDEGsWT <- union(ressig_WT1_LPS_up$IDGeneInfo, ressig_WT2_LPS_up$IDGeneInfo)
+sumDEGs <- union(sumDEGsHW, sumDEGsWT)
+length(sumDEGsWT)
+
+##Pairwise
+HW1_HW2 <- intersect(ressig_HW1_LPS_up$IDGeneInfo, ressig_HW2_LPS_up$IDGeneInfo)
+HW1_WT1 <- intersect(ressig_HW1_LPS_up$IDGeneInfo, ressig_WT1_LPS_up$IDGeneInfo)
+HW1_WT2 <- intersect(ressig_HW1_LPS_up$IDGeneInfo, ressig_WT2_LPS_up$IDGeneInfo)
+HW2_WT1 <- intersect(ressig_HW2_LPS_up$IDGeneInfo, ressig_WT1_LPS_up$IDGeneInfo)
+HW2_WT2 <- intersect(ressig_HW2_LPS_up$IDGeneInfo, ressig_WT2_LPS_up$IDGeneInfo)
+WT1_WT2 <- intersect(ressig_WT1_LPS_up$IDGeneInfo, ressig_WT2_LPS_up$IDGeneInfo)
+##Triple
+HW1_HW2_WT1 <- intersect(HW1_HW2, ressig_WT1_LPS_up$IDGeneInfo)
+HW1_HW2_WT2 <- intersect(HW1_HW2, ressig_WT2_LPS_up$IDGeneInfo)
+HW1_WT1_WT2 <- intersect(WT1_WT2, ressig_HW1_LPS_up$IDGeneInfo)
+HW2_WT1_WT2 <- intersect(WT1_WT2, ressig_HW2_LPS_up$IDGeneInfo)
+##Quadruple
+HW12_WT12 <- intersect(HW1_HW2, WT1_WT2)
+```
+```{r}
+setdiff(HW1_WT2, HW12_WT12)
+```
+```{r}
+setdiff(WT1_WT2, HW12_WT12)
+```
+
+```{r}
+setdiff(ressig_WT2_LPS$IDGeneInfo, sumDEGsHW)
+```
+```{r}
+library(VennDiagram)
+pdf("~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/LPS_colony_Venn_up.pdf", height = 3, width = 3)
+vp = viewport(height = unit(2, "in"),  width = unit(2, "in"))
+grid.newpage()
+grid.rect(vp = vp, gp = gpar(col = "white"))
+
+#HW1, WT2, HW2, WT1
+LPS_venn <- draw.quad.venn(area1 = length(ressig_HW1_LPS_up$IDGeneInfo),
+               area2 = length(ressig_WT2_LPS_up$IDGeneInfo),
+               area3 = length(ressig_HW2_LPS_up$IDGeneInfo),
+               area4 = length(ressig_WT1_LPS_up$IDGeneInfo),
+               n12 = length(HW1_WT2),
+               n13 = length(HW1_HW2),
+               n14 = length(HW1_WT1),
+               n23 = length(HW2_WT2),
+               n24 = length(WT1_WT2),
+               n34 = length(HW2_WT1),
+               n123 = length(HW1_HW2_WT2),
+               n124 = length(HW1_WT1_WT2),
+               n134 = length(HW1_HW2_WT1),
+               n234 = length(HW2_WT1_WT2),
+               n1234 = length(HW12_WT12),
+               category = c("HW1", "WT2", "HW2", "WT1"),
+               fill = c("olivedrab3", "skyblue", "springgreen", "deepskyblue"),
+               lwd = rep(1,4),
+               cat.cex = rep(1.4, 4),
+               cat.fontfamily = rep("Arial", 4),
+               cat.fontface = rep("plain", 4),
+               alpha = c(0.3,0.3,0.3,0.3),
+               cex = c(rep(1.4,5), 2.2, rep(1.4, 9)),
+               fontface = c(rep("plain", 5), "bold", rep("plain", 9)),
+               fontfamily = c(rep("Arial", 15)),
+               label.col = c(rep("black", 5), "black", rep("black", 9)),
+               print.mode = "raw",
+               sigdigs = 2,
+               scaled = TRUE
+)
+grid.draw(LPS_venn)
+```
+
+# Colony-specific down Venn
+```{r}
+sumDEGsHW <- union(ressig_HW1_LPS_dn$IDGeneInfo, ressig_HW2_LPS_dn$IDGeneInfo)
+sumDEGsWT <- union(ressig_WT1_LPS_dn$IDGeneInfo, ressig_WT2_LPS_dn$IDGeneInfo)
+sumDEGs <- union(sumDEGsHW, sumDEGsWT)
+length(sumDEGsWT)
+
+##Pairwise
+HW1_HW2 <- intersect(ressig_HW1_LPS_dn$IDGeneInfo, ressig_HW2_LPS_dn$IDGeneInfo)
+HW1_WT1 <- intersect(ressig_HW1_LPS_dn$IDGeneInfo, ressig_WT1_LPS_dn$IDGeneInfo)
+HW1_WT2 <- intersect(ressig_HW1_LPS_dn$IDGeneInfo, ressig_WT2_LPS_dn$IDGeneInfo)
+HW2_WT1 <- intersect(ressig_HW2_LPS_dn$IDGeneInfo, ressig_WT1_LPS_dn$IDGeneInfo)
+HW2_WT2 <- intersect(ressig_HW2_LPS_dn$IDGeneInfo, ressig_WT2_LPS_dn$IDGeneInfo)
+WT1_WT2 <- intersect(ressig_WT1_LPS_dn$IDGeneInfo, ressig_WT2_LPS_dn$IDGeneInfo)
+##Triple
+HW1_HW2_WT1 <- intersect(HW1_HW2, ressig_WT1_LPS_dn$IDGeneInfo)
+HW1_HW2_WT2 <- intersect(HW1_HW2, ressig_WT2_LPS_dn$IDGeneInfo)
+HW1_WT1_WT2 <- intersect(WT1_WT2, ressig_HW1_LPS_dn$IDGeneInfo)
+HW2_WT1_WT2 <- intersect(WT1_WT2, ressig_HW2_LPS_dn$IDGeneInfo)
+##Quadruple
+HW12_WT12 <- intersect(HW1_HW2, WT1_WT2)
+```
+```{r}
+setdiff(HW1_WT2, HW12_WT12)
+```
+```{r}
+setdiff(WT1_WT2, HW12_WT12)
+```
+
+```{r}
+setdiff(ressig_WT2_LPS$IDGeneInfo, sumDEGsHW)
+```
+```{r}
+library(VennDiagram)
+pdf("~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/LPS_colony_Venn_dn.pdf", height = 3, width = 3)
+vp = viewport(height = unit(2, "in"),  width = unit(2, "in"))
+grid.newpage()
+grid.rect(vp = vp, gp = gpar(col = "white"))
+
+#HW1, WT2, HW2, WT1
+LPS_venn <- draw.quad.venn(area1 = length(ressig_HW1_LPS_dn$IDGeneInfo),
+               area2 = length(ressig_WT2_LPS_dn$IDGeneInfo),
+               area3 = length(ressig_HW2_LPS_dn$IDGeneInfo),
+               area4 = length(ressig_WT1_LPS_dn$IDGeneInfo),
+               n12 = length(HW1_WT2),
+               n13 = length(HW1_HW2),
+               n14 = length(HW1_WT1),
+               n23 = length(HW2_WT2),
+               n24 = length(WT1_WT2),
+               n34 = length(HW2_WT1),
+               n123 = length(HW1_HW2_WT2),
+               n124 = length(HW1_WT1_WT2),
+               n134 = length(HW1_HW2_WT1),
+               n234 = length(HW2_WT1_WT2),
+               n1234 = length(HW12_WT12),
+               category = c("HW1", "WT2", "HW2", "WT1"),
+               fill = c("olivedrab3", "skyblue", "springgreen", "deepskyblue"),
+               lwd = rep(1,4),
+               cat.cex = rep(1.4, 4),
+               cat.fontfamily = rep("Arial", 4),
+               cat.fontface = rep("plain", 4),
+               alpha = c(0.3,0.3,0.3,0.3),
+               cex = c(rep(1.4,5), 2.2, rep(1.4, 9)),
+               fontface = c(rep("plain", 5), "bold", rep("plain", 9)),
+               fontfamily = c(rep("Arial", 15)),
+               label.col = c(rep("black", 5), "black", rep("black", 9)),
+               print.mode = "raw",
+               sigdigs = 2,
+               scaled = TRUE
+)
+grid.draw(LPS_venn)
+```
+
+# Overall and Colony-specific DEG Venn
+```{r}
+overall <- union(sumDEGs, ressig_LPS_ctrl$IDGeneInfo)
+length(overall)
+overallgenotypes <- intersect(sumDEGs, ressig_LPS_ctrl$IDGeneInfo)
+length(overallgenotypes)
+```
+```{r}
+HW1_unique <- setdiff(rownames(ressig_HW1_LPS), rownames(ressig_LPS_ctrl))
+setdiff(ressig_HW1_LPS$IDGeneInfo, ressig_LPS_ctrl$IDGeneInfo)
+```
+```{r}
+HW2_unique <- setdiff(rownames(ressig_HW2_LPS), rownames(ressig_LPS_ctrl))
+setdiff(ressig_HW2_LPS$IDGeneInfo, ressig_LPS_ctrl$IDGeneInfo)
+```
+```{r}
+WT1_unique <- setdiff(rownames(ressig_WT1_LPS), rownames(ressig_LPS_ctrl))
+setdiff(ressig_WT1_LPS$IDGeneInfo, ressig_LPS_ctrl$IDGeneInfo)
+```
+```{r}
+WT2_unique <- setdiff(rownames(ressig_WT2_LPS), rownames(ressig_LPS_ctrl))
+setdiff(ressig_WT2_LPS$IDGeneInfo, ressig_LPS_ctrl$IDGeneInfo)
+```

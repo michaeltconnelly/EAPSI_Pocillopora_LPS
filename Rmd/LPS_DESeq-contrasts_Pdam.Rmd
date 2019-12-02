@@ -1,0 +1,228 @@
+---
+title: "Stable_DESeq-contrasts_Pdam"
+author: "Mike Connelly"
+date: "10/24/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI_HW-WT-master/")
+library(DESeq2)
+```
+```{r}
+resultsNames(dds_LPS)
+```
+
+##Results contrasts between individual treatments and control samples
+
+### LPS vs. Control
+```{r}
+res_LPS_ctrl <- results(dds_LPS, contrast = c("Treatment", "LPS", "control"))
+res_LPS_ctrl$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
+res_LPS_ctrl$IDGeneInfo <- as.character(res_LPS_ctrl$IDGeneInfo)
+write.csv(as.data.frame(res_LPS_ctrl[order(res_LPS_ctrl$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/all/res_LPS_ctrl.csv")
+ressig_LPS_ctrl <- subset(res_LPS_ctrl, padj<0.01)
+ressig_LPS_ctrl_up <- subset(res_LPS_ctrl, padj<0.01 & log2FoldChange>0)
+ressig_LPS_ctrl_dn <- subset(res_LPS_ctrl, padj<0.01 & log2FoldChange<0)
+write.csv(as.data.frame(ressig_LPS_ctrl[order(ressig_LPS_ctrl$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_LPS_ctrl.csv")
+write.csv(as.data.frame(ressig_LPS_ctrl_up[order(ressig_LPS_ctrl_up$log2FoldChange, decreasing = TRUE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_LPS_ctrl_up.csv")
+write.csv(as.data.frame(ressig_LPS_ctrl_dn[order(ressig_LPS_ctrl_dn$log2FoldChange, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_LPS_ctrl_dn.csv")
+colnames(res_LPS_ctrl)
+summary(res_LPS_ctrl)
+```
+```{bash}
+awk -F "," '{print $1}' ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_LPS_ctrl.csv > ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_ID.txt
+sed -i '' 1d ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_ID.txt
+sed -i -e 's/"//g' ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_ID.txt
+rm ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_ID.txt-e
+
+awk -F "," '{print $1}' ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_LPS_ctrl_up.csv > ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_up_ID.txt
+sed -i '' 1d ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_up_ID.txt
+sed -i -e 's/"//g' ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_up_ID.txt
+rm ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_up_ID.txt-e
+
+awk -F "," '{print $1}' ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_LPS_ctrl_dn.csv > ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_dn_ID.txt
+sed -i '' 1d ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_dn_ID.txt
+sed -i -e 's/"//g' ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_dn_ID.txt
+rm ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_dn_ID.txt-e
+```
+
+## Results contrasts between different coral genotypes
+### Houwan1 vs. Houwan2
+```{r}
+res_HW1_HW2 <- results(dds_LPS, contrast = c("Colony", "HW1", "HW2"))
+res_HW1_HW2$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
+res_HW1_HW2$IDGeneInfo <- as.character(res_HW1_HW2$IDGeneInfo)
+write.csv(as.data.frame(res_HW1_HW2[order(res_HW1_HW2$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/all/res_HW1_HW2.csv")
+ressig_HW1_HW2 <- subset(res_HW1_HW2, padj<0.01)
+ressig_HW1_HW2_up <- subset(res_HW1_HW2, padj<0.01 & log2FoldChange>0)
+ressig_HW1_HW2_dn <- subset(res_HW1_HW2, padj<0.01 & log2FoldChange<0)
+write.csv(as.data.frame(ressig_HW1_HW2[order(ressig_HW1_HW2$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_HW1_HW2.csv")
+write.csv(as.data.frame(ressig_HW1_HW2_up[order(ressig_HW1_HW2_up$log2FoldChange, decreasing = TRUE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_HW1_HW2_up.csv")
+write.csv(as.data.frame(ressig_HW1_HW2_dn[order(ressig_HW1_HW2_dn$log2FoldChange, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_HW1_HW2_dn.csv")
+colnames(res_HW1_HW2)
+summary(res_HW1_HW2)
+```
+
+### Houwan1 vs. Wanglitung1
+```{r}
+res_HW1_WT1 <- results(dds_LPS, contrast = c("Colony", "HW1", "WT1"))
+res_HW1_WT1$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
+res_HW1_WT1$IDGeneInfo <- as.character(res_HW1_WT1$IDGeneInfo)
+write.csv(as.data.frame(res_HW1_WT1[order(res_HW1_WT1$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/all/res_HW1_WT1.csv")
+ressig_HW1_WT1 <- subset(res_HW1_WT1, padj<0.01)
+ressig_HW1_WT1_up <- subset(res_HW1_WT1, padj<0.01 & log2FoldChange>0)
+ressig_HW1_WT1_dn <- subset(res_HW1_WT1, padj<0.01 & log2FoldChange<0)
+write.csv(as.data.frame(ressig_HW1_WT1[order(ressig_HW1_WT1$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_HW1_WT1.csv")
+write.csv(as.data.frame(ressig_HW1_WT1_up[order(ressig_HW1_WT1_up$log2FoldChange, decreasing = TRUE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_HW1_WT1_up.csv")
+write.csv(as.data.frame(ressig_HW1_WT1_dn[order(ressig_HW1_WT1_dn$log2FoldChange, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_HW1_WT1_dn.csv")
+colnames(res_HW1_WT1)
+summary(res_HW1_WT1)
+```
+
+### Houwan1 vs. Wanglitung2
+```{r}
+res_HW1_WT2 <- results(dds_LPS, contrast = c("Colony", "HW1", "WT2"))
+res_HW1_WT2$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
+res_HW1_WT2$IDGeneInfo <- as.character(res_HW1_WT2$IDGeneInfo)
+write.csv(as.data.frame(res_HW1_WT2[order(res_HW1_WT2$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/all/res_HW1_WT2.csv")
+ressig_HW1_WT2 <- subset(res_HW1_WT2, padj<0.01)
+ressig_HW1_WT2_up <- subset(res_HW1_WT2, padj<0.01 & log2FoldChange>0)
+ressig_HW1_WT2_dn <- subset(res_HW1_WT2, padj<0.01 & log2FoldChange<0)
+write.csv(as.data.frame(ressig_HW1_WT2[order(ressig_HW1_WT2$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_HW1_WT2.csv")
+write.csv(as.data.frame(ressig_HW1_WT2_up[order(ressig_HW1_WT2_up$log2FoldChange, decreasing = TRUE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_HW1_WT2_up.csv")
+write.csv(as.data.frame(ressig_HW1_WT2_dn[order(ressig_HW1_WT2_dn$log2FoldChange, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_HW1_WT2_dn.csv")
+colnames(res_HW1_WT2)
+summary(res_HW1_WT2)
+```
+
+### Houwan2 vs. Wanglitung1
+```{r}
+res_HW2_WT1 <- results(dds_LPS, contrast = c("Colony", "HW2", "WT1"))
+res_HW2_WT1$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
+res_HW2_WT1$IDGeneInfo <- as.character(res_HW2_WT1$IDGeneInfo)
+write.csv(as.data.frame(res_HW2_WT1[order(res_HW2_WT1$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/all/res_HW2_WT1.csv")
+ressig_HW2_WT1 <- subset(res_HW2_WT1, padj<0.01)
+ressig_HW2_WT1_up <- subset(res_HW2_WT1, padj<0.01 & log2FoldChange>0)
+ressig_HW2_WT1_dn <- subset(res_HW2_WT1, padj<0.01 & log2FoldChange<0)
+write.csv(as.data.frame(ressig_HW2_WT1[order(ressig_HW2_WT1$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_HW2_WT1.csv")
+write.csv(as.data.frame(ressig_HW2_WT1_up[order(ressig_HW2_WT1_up$log2FoldChange, decreasing = TRUE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_HW2_WT1_up.csv")
+write.csv(as.data.frame(ressig_HW2_WT1_dn[order(ressig_HW2_WT1_dn$log2FoldChange, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_HW2_WT1_dn.csv")
+colnames(res_HW2_WT1)
+summary(res_HW2_WT1)
+```
+
+### Houwan2 vs. Wanglitung2
+```{r}
+res_HW2_WT2 <- results(dds_LPS, contrast = c("Colony", "HW2", "WT2"))
+res_HW2_WT2$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
+res_HW2_WT2$IDGeneInfo <- as.character(res_HW2_WT2$IDGeneInfo)
+write.csv(as.data.frame(res_HW2_WT2[order(res_HW2_WT2$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/all/res_HW2_WT2.csv")
+ressig_HW2_WT2 <- subset(res_HW2_WT2, padj<0.01)
+ressig_HW2_WT2_up <- subset(res_HW2_WT2, padj<0.01 & log2FoldChange>0)
+ressig_HW2_WT2_dn <- subset(res_HW2_WT2, padj<0.01 & log2FoldChange<0)
+write.csv(as.data.frame(ressig_HW2_WT2[order(ressig_HW2_WT2$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_HW2_WT2.csv")
+write.csv(as.data.frame(ressig_HW2_WT2_up[order(ressig_HW2_WT2_up$log2FoldChange, decreasing = TRUE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_HW2_WT2_up.csv")
+write.csv(as.data.frame(ressig_HW2_WT2_dn[order(ressig_HW2_WT2_dn$log2FoldChange, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_HW2_WT2_dn.csv")
+colnames(res_HW2_WT2)
+summary(res_HW2_WT2)
+```
+
+### Wanglitung1 vs. Wanglitung2
+```{r}
+res_WT1_WT2 <- results(dds_LPS, contrast = c("Colony", "WT1", "WT2"))
+res_WT1_WT2$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
+res_WT1_WT2$IDGeneInfo <- as.character(res_WT1_WT2$IDGeneInfo)
+write.csv(as.data.frame(res_WT1_WT2[order(res_WT1_WT2$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/all/res_WT1_WT2.csv")
+ressig_WT1_WT2 <- subset(res_WT1_WT2, padj<0.01)
+ressig_WT1_WT2_up <- subset(res_WT1_WT2, padj<0.01 & log2FoldChange>0)
+ressig_WT1_WT2_dn <- subset(res_WT1_WT2, padj<0.01 & log2FoldChange<0)
+write.csv(as.data.frame(ressig_WT1_WT2[order(ressig_WT1_WT2$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_WT1_WT2.csv")
+write.csv(as.data.frame(ressig_WT1_WT2_up[order(ressig_WT1_WT2_up$log2FoldChange, decreasing = TRUE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_WT1_WT2_up.csv")
+write.csv(as.data.frame(ressig_WT1_WT2_dn[order(ressig_WT1_WT2_dn$log2FoldChange, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_WT1_WT2_dn.csv")
+colnames(res_WT1_WT2)
+summary(res_WT1_WT2)
+```
+
+## Colony-specific results between control and LPS-exposed samples 
+### Houwan1
+```{r}
+res_HW1_LPS <- results(dds_HW1, contrast = c("Treatment", "LPS", "control"))
+res_HW1_LPS$IDGeneInfo <- mcols(dds_HW1)$IDGeneInfo
+res_HW1_LPS$IDGeneInfo <- as.character(res_HW1_LPS$IDGeneInfo)
+write.csv(as.data.frame(res_HW1_LPS[order(res_HW1_LPS$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/all/res_HW1_LPS.csv")
+ressig_HW1_LPS <- subset(res_HW1_LPS, padj<0.01)
+ressig_HW1_LPS_up <- subset(res_HW1_LPS, padj<0.01 & log2FoldChange>0)
+ressig_HW1_LPS_dn <- subset(res_HW1_LPS, padj<0.01 & log2FoldChange<0)
+write.csv(as.data.frame(ressig_HW1_LPS[order(ressig_HW1_LPS$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_HW1_LPS.csv")
+write.csv(as.data.frame(ressig_HW1_LPS_up[order(ressig_HW1_LPS_up$log2FoldChange, decreasing = TRUE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_HW1_LPS_up.csv")
+write.csv(as.data.frame(ressig_HW1_LPS_dn[order(ressig_HW1_LPS_dn$log2FoldChange, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_HW1_LPS_dn.csv")
+colnames(res_HW1_LPS)
+summary(ressig_HW1_LPS)
+```
+
+### Houwan2
+```{r}
+res_HW2_LPS <- results(dds_HW2, contrast = c("Treatment", "LPS", "control"))
+res_HW2_LPS$IDGeneInfo <- mcols(dds_HW2)$IDGeneInfo
+res_HW2_LPS$IDGeneInfo <- as.character(res_HW2_LPS$IDGeneInfo)
+write.csv(as.data.frame(res_HW2_LPS[order(res_HW2_LPS$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/all/res_HW2_LPS.csv")
+ressig_HW2_LPS <- subset(res_HW2_LPS, padj<0.01)
+ressig_HW2_LPS_up <- subset(res_HW2_LPS, padj<0.01 & log2FoldChange>0)
+ressig_HW2_LPS_dn <- subset(res_HW2_LPS, padj<0.01 & log2FoldChange<0)
+write.csv(as.data.frame(ressig_HW2_LPS[order(ressig_HW2_LPS$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_HW2_LPS.csv")
+write.csv(as.data.frame(ressig_HW2_LPS_up[order(ressig_HW2_LPS_up$log2FoldChange, decreasing = TRUE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_HW2_LPS_up.csv")
+write.csv(as.data.frame(ressig_HW2_LPS_dn[order(ressig_HW2_LPS_dn$log2FoldChange, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_HW2_LPS_dn.csv")
+colnames(res_HW2_LPS)
+summary(ressig_HW2_LPS)
+```
+
+### Wanglitung1
+```{r}
+res_WT1_LPS <- results(dds_WT1, contrast = c("Treatment", "LPS", "control"))
+res_WT1_LPS$IDGeneInfo <- mcols(dds_WT1)$IDGeneInfo
+res_WT1_LPS$IDGeneInfo <- as.character(res_WT1_LPS$IDGeneInfo)
+write.csv(as.data.frame(res_WT1_LPS[order(res_WT1_LPS$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/all/res_WT1_LPS.csv")
+ressig_WT1_LPS <- subset(res_WT1_LPS, padj<0.01)
+ressig_WT1_LPS_up <- subset(res_WT1_LPS, padj<0.01 & log2FoldChange>0)
+ressig_WT1_LPS_dn <- subset(res_WT1_LPS, padj<0.01 & log2FoldChange<0)
+write.csv(as.data.frame(ressig_WT1_LPS[order(ressig_WT1_LPS$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_WT1_LPS.csv")
+write.csv(as.data.frame(ressig_WT1_LPS_up[order(ressig_WT1_LPS_up$log2FoldChange, decreasing = TRUE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_WT1_LPS_up.csv")
+write.csv(as.data.frame(ressig_WT1_LPS_dn[order(ressig_WT1_LPS_dn$log2FoldChange, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_WT1_LPS_dn.csv")
+colnames(res_WT1_LPS)
+summary(ressig_WT1_LPS)
+```
+
+### Wanglitung2
+```{r}
+res_WT2_LPS <- results(dds_WT2, contrast = c("Treatment", "LPS", "control"))
+res_WT2_LPS$IDGeneInfo <- mcols(dds_WT2)$IDGeneInfo
+res_WT2_LPS$IDGeneInfo <- as.character(res_WT2_LPS$IDGeneInfo)
+write.csv(as.data.frame(res_WT2_LPS[order(res_WT2_LPS$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/all/res_WT2_LPS.csv")
+ressig_WT2_LPS <- subset(res_WT2_LPS, padj<0.01)
+ressig_WT2_LPS_up <- subset(res_WT2_LPS, padj<0.01 & log2FoldChange>0)
+ressig_WT2_LPS_dn <- subset(res_WT2_LPS, padj<0.01 & log2FoldChange<0)
+write.csv(as.data.frame(ressig_WT2_LPS[order(ressig_WT2_LPS$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_WT2_LPS.csv")
+write.csv(as.data.frame(ressig_WT2_LPS_up[order(ressig_WT2_LPS_up$log2FoldChange, decreasing = TRUE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_WT2_LPS_up.csv")
+write.csv(as.data.frame(ressig_WT2_LPS_dn[order(ressig_WT2_LPS_dn$log2FoldChange, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_WT2_LPS_dn.csv")
+colnames(res_WT2_LPS)
+summary(ressig_WT2_LPS)
+```
+
+### LPS vs. Control, LFC-shrink normal results
+```{r}
+res_LPS_normal$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
+res_LPS_normal$IDGeneInfo <- as.character(res_LPS_ctrl$IDGeneInfo)
+colnames(res_LPS_normal)
+summary(res_LPS_normal)
+ressig_LPS_normal <- subset(res_LPS_normal, padj<0.01)
+ressig_LPS_normal_up <- subset(res_LPS_normal, padj<0.01 & log2FoldChange>0)
+ressig_LPS_normal_dn <- subset(res_LPS_normal, padj<0.01 & log2FoldChange<0)
+summary(ressig_LPS_normal_up)
+
+#write.csv(as.data.frame(ressig_LPS_ctrl[order(ressig_LPS_ctrl$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_LPS_ctrl.csv")
+#write.csv(as.data.frame(ressig_LPS_ctrl_up[order(ressig_LPS_ctrl_up$log2FoldChange, decreasing = TRUE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_LPS_ctrl_up.csv")
+#write.csv(as.data.frame(ressig_LPS_ctrl_dn[order(ressig_LPS_ctrl_dn$log2FoldChange, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_LPS_ctrl_dn.csv")
+```
+
