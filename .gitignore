@@ -1,5 +1,5 @@
-.RData*
-.Rproj*
-.Rhistory
+*.RData*
+*.Rproj*
+*.Rhistory
 
 .Rproj.user
