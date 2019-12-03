@@ -1,15 +1,15 @@
 ---
 title: "LPS_DESeq_Pdam"
 author: "Mike Connelly"
-date: "5/20/2019"
+date: "12/03/2019"
 output: html_document
 ---
 
-RMarkdown document containing scripts for DESeq2 modelling of differential gene expression between fragments of four *Pocillopora damicornis* genotypes collected at Wanglitung and Houwan reefs and placed in an LPS treatment group and one control group during EAPSI Taiwan, summer 2017.
+RMarkdown document containing scripts for DESeq2 modelling of differential gene expression between fragments of four *Pocillopora* genotypes collected at Wanglitung and Houwan reefs and placed in an LPS treatment group and one control group during EAPSI Taiwan, summer 2017.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI_HW-WT-master/")
+#knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI_HW-WT-master/")
 ```
 ## Setup packages and working directories
 ```{r packages, error=FALSE, warning=FALSE, message=FALSE}
@@ -26,7 +26,7 @@ stable_samples <- read.table("EAPSIsamples_stable.txt", header = TRUE)
 ```
 ## Import counts data 
 ```{r}
-countdata <- read.delim("alltreatments_Pdam.counts", row.names = 1, skip = 1) # comment.char="#",
+countdata <- read.delim("LPS_Pdam.counts", row.names = 1, skip = 1) # comment.char="#",
 ```
 ## Tidy counts data
   Set Gene ID's as row names
@@ -38,7 +38,7 @@ countdata <- read.delim("alltreatments_Pdam.counts", row.names = 1, skip = 1) # 
 countdata <- countdata[ ,6:ncol(countdata)]
   colnames(countdata) <- gsub("X.", "", colnames(countdata))
   colnames(countdata) <- gsub("scratch.projects.transcriptomics.mikeconnelly.sequences.EAPSI.", "", colnames(countdata))
-  colnames(countdata) <- gsub("houwanwanglitung.alltreatments.STARalign_Pdam.", "", colnames(countdata))
+  colnames(countdata) <- gsub("houwanwanglitung.LPS.STARalign_Pdam.", "", colnames(countdata))
   colnames(countdata) <- gsub("_PdamAligned.out.bam$", "", colnames(countdata))
 ```
 ## Import gene feature annotation information
