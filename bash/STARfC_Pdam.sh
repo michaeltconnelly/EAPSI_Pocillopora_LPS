@@ -25,5 +25,5 @@ echo $EAPSIsamples
 ${mcs}/programs/subread-1.6.0-Linux-x86_64/bin/featureCounts -t gene \
 -g ID \
 -a ${mcs}/sequences/genomes/coral/pocillopora/pdam_genome.gff \
--o ${prodir}/${exp}/STARcounts_Pdam/${exp}_Pdam.counts \
-${prodir}/${exp}/STARalign_Pdam/*Aligned.out.bam
+-o ${prodir}/outputs/STARcounts_Pdam/${exp}_Pdam.counts \
+${prodir}/outputs/STARalign_Pdam/*Aligned.out.bam

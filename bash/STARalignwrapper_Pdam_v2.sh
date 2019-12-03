@@ -28,13 +28,13 @@ do \
 echo "Aligning ${EAPSIsample}"
 
 #   input BSUB commands
-echo '#!/bin/bash' > "${prodir}"/"${exp}"/scripts/"${EAPSIsample}"_staralign_pdam.job
-echo '#BSUB -q bigmem' >> "${prodir}"/"${exp}"/scripts/"${EAPSIsample}"_staralign_pdam.job
-echo '#BSUB -J '"${EAPSIsample}"_staralign_pdam'' >> "${prodir}"/"${exp}"/scripts/"${EAPSIsample}"_staralign_pdam.job
-echo '#BSUB -o '"${prodir}"/"${exp}"/logfiles/"$EAPSIsample"staralign_pdam%J.out'' >> "${prodir}"/"${exp}"/scripts/"${EAPSIsample}"_staralign_pdam.job
-echo '#BSUB -e '"${prodir}"/"${exp}"/errorfiles/"$EAPSIsample"staralign_pdam%J.err'' >> "${prodir}"/"${exp}"/scripts/"${EAPSIsample}"_staralign_pdam.job
-echo '#BSUB -n 8' >> "${prodir}"/"${exp}"/scripts/"${EAPSIsample}"_staralign_pdam.job
-echo '#BSUB -W 4:00' >> "${prodir}"/"${exp}"/scripts/"${EAPSIsample}"_staralign_pdam.job
+echo '#!/bin/bash' > "${prodir}"/bash/jobs/"${EAPSIsample}"_staralign_pdam.job
+echo '#BSUB -q bigmem' >> "${prodir}"/bash/jobs/"${EAPSIsample}"_staralign_pdam.job
+echo '#BSUB -J '"${EAPSIsample}"_staralign_pdam'' >> "${prodir}"/bash/jobs/"${EAPSIsample}"_staralign_pdam.job
+echo '#BSUB -o '"${prodir}"/outputs/logfiles/"$EAPSIsample"staralign_pdam%J.out'' >> "${prodir}"/bash/jobs/"${EAPSIsample}"_staralign_pdam.job
+echo '#BSUB -e '"${prodir}"/outputs/errorfiles/"$EAPSIsample"staralign_pdam%J.err'' >> "${prodir}"/bash/jobs/"${EAPSIsample}"_staralign_pdam.job
+echo '#BSUB -n 8' >> "${prodir}"/bash/jobs/"${EAPSIsample}"_staralign_pdam.job
+echo '#BSUB -W 4:00' >> "${prodir}"/bash/jobs/"${EAPSIsample}"_staralign_pdam.job
 
 #   input command to run STAR aligner
 echo ${mcs}/programs/STAR-2.5.3a/bin/Linux_x86_64/STAR \
@@ -52,11 +52,11 @@ echo ${mcs}/programs/STAR-2.5.3a/bin/Linux_x86_64/STAR \
 --outStd Log BAM_Unsorted BAM_Quant \
 --outSAMtype BAM Unsorted \
 --outReadsUnmapped Fastx \
---outFileNamePrefix ${prodir}/${exp}/STARalign_Pdam/${EAPSIsample}_Pdam >> "${prodir}"/"${exp}"/scripts/"${EAPSIsample}"_staralign_pdam.job
+--outFileNamePrefix ${prodir}/${exp}/STARalign_Pdam/${EAPSIsample}_Pdam >> "${prodir}"/bash/jobs/"${EAPSIsample}"_staralign_pdam.job
 
 #lets me know file is done
-echo 'echo' "STAR alignment of $EAPSIsample complete"'' >> "${prodir}"/"${exp}"/scripts/"${EAPSIsample}"_staralign_pdam.job
+echo 'echo' "STAR alignment of $EAPSIsample complete"'' >> "${prodir}"/bash/jobs/"${EAPSIsample}"_staralign_pdam.job
 echo "STAR alignment script of $EAPSIsample submitted"
 #   submit generated trimming script to job queue
-bsub < "${prodir}"/"${exp}"/scripts/"${EAPSIsample}"_staralign_pdam.job
+bsub < "${prodir}"/bash/jobs/"${EAPSIsample}"_staralign_pdam.job
 done

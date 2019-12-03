@@ -53,6 +53,8 @@ mkdir ${prodir}/outputs/trimqcs
 mkdir ${prodir}/outputs/trimmomaticreads
 mkdir ${prodir}/outputs/STARalign_Pdam
 mkdir ${prodir}/outputs/STARcounts_Pdam
+mkdir ${prodir}/outputs/DESeq-results
+mkdir ${prodir}/outputs/phyloseq-results
 echo "Filesystem and project directories created"
 
 #copy EAPSI sequences

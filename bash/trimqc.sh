@@ -21,5 +21,5 @@ EAPSIsamples="Wt1-3a Wt1-3b Wt1-3c Wt1-6a Wt1-6b Wt1-6c Wt2-3a Wt2-3b Wt2-3c Wt2
 
 module load java/1.8.0_60
 ${mcs}/programs/FastQC/fastqc \
-${prodir}/${exp}/trimmomaticreads/[HW][wt][12]-[123456][abc]*fastq.gz \
---outdir ${prodir}/${exp}/trimqcs/
+${prodir}/outputs/trimmomaticreads/[HW][wt][12]-[123456][abc]*fastq.gz \
+--outdir ${prodir}/outputs/trimqcs/
