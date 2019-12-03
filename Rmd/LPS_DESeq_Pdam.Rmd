@@ -9,7 +9,7 @@ RMarkdown document containing scripts for DESeq2 modelling of differential gene 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-#knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI_HW-WT-master/")
+knitr::opts_knit$set(root.dir = "~/computing/projects/EAPSI_Pocillopora_LPS")
 ```
 ## Setup packages and working directories
 ```{r packages, error=FALSE, warning=FALSE, message=FALSE}
@@ -20,7 +20,7 @@ library("apeglm")
 ```
 ## Import sample data
 ```{r, echo=FALSE}
-stable_samples <- read.table("EAPSIsamples_stable.txt", header = TRUE)
+stable_samples <- read.table("./data/EAPSIsamples_stable.txt", header = TRUE)
 #stable_samples$treatment <- as.factor(stable_samples$treatment)
 #stable_samples$genotype <- as.factor(stable_samples$genotype)
 ```
