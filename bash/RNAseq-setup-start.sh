@@ -15,7 +15,7 @@
 
 #specify variable containing sequence file prefixes and directory paths
 mcs="/scratch/projects/transcriptomics/mikeconnelly"
-coldir="/scratch/projects/transcriptomics/mikeconnelly/sequences/EAPSI/houwanwanglitung"
+prodir="/scratch/projects/transcriptomics/mikeconnelly/projects/EAPSI_Pocillopora_LPS"
 exp="LPS"
 EAPSIsamples="Wt1-3a Wt1-3b Wt1-3c Wt1-6a Wt1-6b Wt1-6c Wt2-3a Wt2-3b Wt2-3c Wt2-6a Wt2-6b Wt2-6c Hw1-3a Hw1-3b Hw1-3c Hw1-6a Hw1-6b Hw1-6c Hw2-3a Hw2-3b Hw2-3c Hw2-6b Hw2-6c"
 
@@ -37,26 +37,25 @@ cp -r ~/programs/subread-1.6.0-Linux-x86_64 ${mcs}/programs
 chmod 755 ${mcs}/programs/FastQC/fastqc
 echo "Program files copied to scratch"
 #make file structure for pipeline file input/output
-mkdir ${coldir}
-mkdir ${coldir}/${exp}
-mkdir ${coldir}/${exp}/scripts
-mkdir ${coldir}/${exp}/logfiles
-mkdir ${coldir}/${exp}/errorfiles
-mkdir ${coldir}/${exp}/zippedreads
-mkdir ${coldir}/${exp}/fastqcs
-mkdir ${coldir}/${exp}/trimmomaticreads
-mkdir ${coldir}/${exp}/trimqcs
+mkdir ${prodir}
+mkdir ${prodir}/scripts
+mkdir ${prodir}/logfiles
+mkdir ${prodir}/errorfiles
+mkdir ${prodir}/zippedreads
+mkdir ${prodir}/fastqcs
+mkdir ${prodir}/trimmomaticreads
+mkdir ${prodir}/trimqcs
 #STAR
-mkdir ${coldir}/${exp}/STARalign_Pdam
-mkdir ${coldir}/${exp}/STARcounts_Pdam
-mkdir ${coldir}/${exp}/STARalign_SymC1
-mkdir ${coldir}/${exp}/STARcounts_SymC1
+mkdir ${prodir}/STARalign_Pdam
+mkdir ${prodir}/STARcounts_Pdam
+mkdir ${prodir}/STARalign_SymC1
+mkdir ${prodir}/STARcounts_SymC1
 echo "Filesystem and project directories created"
 
 #copy EAPSI sequences
 for EAPSIsample in $EAPSIsamples
 do \
-cp -r ~/sequences/EAPSI/zippedreads/${EAPSIsample}.txt.gz ${coldir}/${exp}/zippedreads
+cp -r ~/sequences/EAPSI/zippedreads/${EAPSIsample}.txt.gz ${prodir}/zippedreads
 done
 echo "EAPSI sequences copied"
 
