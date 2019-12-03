@@ -36,34 +36,32 @@ cp -r ~/programs/STAR-2.5.3a ${mcs}/programs
 cp -r ~/programs/subread-1.6.0-Linux-x86_64 ${mcs}/programs
 chmod 755 ${mcs}/programs/FastQC/fastqc
 echo "Program files copied to scratch"
+
 #make file structure for pipeline file input/output
 mkdir ${prodir}
-mkdir ${prodir}/scripts
-mkdir ${prodir}/logfiles
-mkdir ${prodir}/errorfiles
-mkdir ${prodir}/zippedreads
-mkdir ${prodir}/fastqcs
-mkdir ${prodir}/trimmomaticreads
-mkdir ${prodir}/trimqcs
-#STAR
-mkdir ${prodir}/STARalign_Pdam
-mkdir ${prodir}/STARcounts_Pdam
-mkdir ${prodir}/STARalign_SymC1
-mkdir ${prodir}/STARcounts_SymC1
+mkdir ${prodir}/data
+mkdir ${prodir}/data/zippedreads
+mkdir ${prodir}/bash
+mkdir ${prodir}/R
+mkdir ${prodir}/Rmd
+mkdir ${prodir}/outputs
+mkdir ${prodir}/outputs/logfiles
+mkdir ${prodir}/outputs/errorfiles
+mkdir ${prodir}/outputs/fastqcs
+mkdir ${prodir}/outputs/trimqcs
+mkdir ${prodir}/outputs/trimmomaticreads
+mkdir ${prodir}/outputs/STARalign_Pdam
+mkdir ${prodir}/outputs/STARcounts_Pdam
 echo "Filesystem and project directories created"
 
 #copy EAPSI sequences
 for EAPSIsample in $EAPSIsamples
 do \
-cp -r ~/sequences/EAPSI/zippedreads/${EAPSIsample}.txt.gz ${prodir}/zippedreads
+cp -r ~/sequences/EAPSI/zippedreads/${EAPSIsample}.txt.gz ${prodir}/data/zippedreads
 done
 echo "EAPSI sequences copied"
 
 #Call first scripts in analysis pipeline
-bsub -P transcriptomics < /scratch/projects/transcriptomics/mikeconnelly/scripts/EAPSI.HW-WT-master/fastqc.sh
-bsub -P transcriptomics < /scratch/projects/transcriptomics/mikeconnelly/scripts/EAPSI.HW-WT-master/trimmomatic_EAPSI.sh
+bsub -P transcriptomics < ${prodir}/bash/fastqc.sh
+bsub -P transcriptomics < ${prodir}/bash/trimmomatic.sh
 echo "RNAseq pipeline scripts successfully activated"
-
-#bsub -P transcriptomics < /scratch/projects/transcriptomics/mikeconnelly/scripts/EAPSI.HW-WT-master/trimqc.sh
-#bsub -P transcriptomics < /scratch/projects/transcriptomics/mikeconnelly/scripts/EAPSI.HW-WT-master/STARalign_Pdam.sh
-#bsub -P transcriptomics < /scratch/projects/transcriptomics/mikeconnelly/scripts/EAPSI.HW-WT-master/STARalign_SymC1.sh
