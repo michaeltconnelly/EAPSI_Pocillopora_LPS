@@ -1,13 +1,13 @@
 ---
-title: "Stable_DESeq-contrasts_Pdam"
+title: "LPS_DESeq-contrasts_Pdam"
 author: "Mike Connelly"
-date: "10/24/2018"
+date: "12/03/2019"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI_HW-WT-master/")
+knitr::opts_knit$set(root.dir = "~/computing/projects/EAPSI_Pocillopora_LPS")
 library(DESeq2)
 ```
 ```{r}
