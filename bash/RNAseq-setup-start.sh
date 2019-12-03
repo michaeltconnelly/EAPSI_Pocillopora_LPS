@@ -42,6 +42,7 @@ mkdir ${prodir}
 mkdir ${prodir}/data
 mkdir ${prodir}/data/zippedreads
 mkdir ${prodir}/bash
+mkdir ${prodir}/bash/jobs
 mkdir ${prodir}/R
 mkdir ${prodir}/Rmd
 mkdir ${prodir}/outputs
