@@ -21,15 +21,15 @@ resultsNames(dds_LPS)
 res_LPS_ctrl <- results(dds_LPS, contrast = c("Treatment", "LPS", "control"))
 res_LPS_ctrl$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
 res_LPS_ctrl$IDGeneInfo <- as.character(res_LPS_ctrl$IDGeneInfo)
-write.csv(as.data.frame(res_LPS_ctrl[order(res_LPS_ctrl$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/all/res_LPS_ctrl.csv")
+write.csv(as.data.frame(res_LPS_ctrl[order(res_LPS_ctrl$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/all/res_LPS_ctrl.csv")
 ressig_LPS_ctrl <- subset(res_LPS_ctrl, padj<0.01)
 ressig_LPS_ctrl_up <- subset(res_LPS_ctrl, padj<0.01 & log2FoldChange>0)
 ressig_LPS_ctrl_dn <- subset(res_LPS_ctrl, padj<0.01 & log2FoldChange<0)
-write.csv(as.data.frame(ressig_LPS_ctrl[order(ressig_LPS_ctrl$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_LPS_ctrl.csv")
-write.csv(as.data.frame(ressig_LPS_ctrl_up[order(ressig_LPS_ctrl_up$log2FoldChange, decreasing = TRUE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_LPS_ctrl_up.csv")
-write.csv(as.data.frame(ressig_LPS_ctrl_dn[order(ressig_LPS_ctrl_dn$log2FoldChange, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_LPS_ctrl_dn.csv")
+write.csv(as.data.frame(ressig_LPS_ctrl[order(ressig_LPS_ctrl$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/overall/res_LPS_ctrl.csv")
+write.csv(as.data.frame(ressig_LPS_ctrl_up[order(ressig_LPS_ctrl_up$log2FoldChange, decreasing = TRUE),]), file = "./outputs/DESeq-results/tables/up/res_LPS_ctrl_up.csv")
+write.csv(as.data.frame(ressig_LPS_ctrl_dn[order(ressig_LPS_ctrl_dn$log2FoldChange, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/down/res_LPS_ctrl_dn.csv")
 colnames(res_LPS_ctrl)
-summary(res_LPS_ctrl)
+summary(ressig_LPS_ctrl)
 ```
 ```{bash}
 awk -F "," '{print $1}' ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_LPS_ctrl.csv > ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_ID.txt
