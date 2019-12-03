@@ -2,7 +2,7 @@
 #./bash/RNAseq-setup-start.sh
 #purpose: create directory structure, copy program binaries and reference sequences into Pegasus scratch space
 #To start this job from the EAPSI_Pocillopora_LPS directory, use:
-#bsub -P transcriptomics < /scratch/projects/transcriptomics/mikeconnelly/projects/EAPSI_Pocillopora_LPS/bash/RNAseq-setup-start.sh
+#bsub -P transcriptomics < ./bash/RNAseq-setup-start.sh
 
 #BSUB -J RNAseq_setup
 #BSUB -q general
@@ -18,6 +18,8 @@ mcs="/scratch/projects/transcriptomics/mikeconnelly"
 prodir="/scratch/projects/transcriptomics/mikeconnelly/projects/EAPSI_Pocillopora_LPS"
 exp="LPS"
 EAPSIsamples="Wt1-3a Wt1-3b Wt1-3c Wt1-6a Wt1-6b Wt1-6c Wt2-3a Wt2-3b Wt2-3c Wt2-6a Wt2-6b Wt2-6c Hw1-3a Hw1-3b Hw1-3c Hw1-6a Hw1-6b Hw1-6c Hw2-3a Hw2-3b Hw2-3c Hw2-6b Hw2-6c"
+
+echo "Pipeline setup process started"
 
 #copy reference sequences
 #Pocillopora genome - .fasta, .gff, STAR index
@@ -38,7 +40,6 @@ chmod 755 ${mcs}/programs/FastQC/fastqc
 echo "Program files copied to scratch"
 
 #make file structure for pipeline file input/output
-mkdir ${prodir}
 mkdir ${prodir}/data
 mkdir ${prodir}/data/zippedreads
 mkdir ${prodir}/bash
@@ -54,7 +55,13 @@ mkdir ${prodir}/outputs/trimmomaticreads
 mkdir ${prodir}/outputs/STARalign_Pdam
 mkdir ${prodir}/outputs/STARcounts_Pdam
 mkdir ${prodir}/outputs/DESeq-results
+mkdir ${prodir}/outputs/DESeq-results/figures
+mkdir ${prodir}/outputs/DESeq-results/lists
+mkdir ${prodir}/outputs/DESeq-results/REVIGO
+mkdir ${prodir}/outputs/DESeq-results/tables
+mkdir ${prodir}/outputs/DESeq-results/topGO
 mkdir ${prodir}/outputs/phyloseq-results
+mkdir ${prodir}/outputs/phyloseq-results/figures
 echo "Filesystem and project directories created"
 
 #copy EAPSI sequences
