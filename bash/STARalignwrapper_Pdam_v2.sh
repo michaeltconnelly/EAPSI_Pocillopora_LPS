@@ -41,7 +41,7 @@ echo ${mcs}/programs/STAR-2.5.3a/bin/Linux_x86_64/STAR \
 --runMode alignReads \
 --quantMode TranscriptomeSAM \
 --runThreadN 16 \
---readFilesIn ${prodir}/${exp}/trimmomaticreads/${EAPSIsample}_trimmed.fastq.gz \
+--readFilesIn ${prodir}/outputs/trimmomaticreads/${EAPSIsample}_trimmed.fastq.gz \
 --readFilesCommand gunzip -c \
 --genomeDir ${mcs}/sequences/genomes/coral/pocillopora/STARindex \
 --sjdbGTFfeatureExon exon \
@@ -52,7 +52,7 @@ echo ${mcs}/programs/STAR-2.5.3a/bin/Linux_x86_64/STAR \
 --outStd Log BAM_Unsorted BAM_Quant \
 --outSAMtype BAM Unsorted \
 --outReadsUnmapped Fastx \
---outFileNamePrefix ${prodir}/${exp}/STARalign_Pdam/${EAPSIsample}_Pdam >> "${prodir}"/bash/jobs/"${EAPSIsample}"_staralign_pdam.job
+--outFileNamePrefix ${prodir}/outputs/STARalign_Pdam/${EAPSIsample}_Pdam >> "${prodir}"/bash/jobs/"${EAPSIsample}"_staralign_pdam.job
 
 #lets me know file is done
 echo 'echo' "STAR alignment of $EAPSIsample complete"'' >> "${prodir}"/bash/jobs/"${EAPSIsample}"_staralign_pdam.job
