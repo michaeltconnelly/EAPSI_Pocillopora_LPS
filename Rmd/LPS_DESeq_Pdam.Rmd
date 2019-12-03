@@ -26,7 +26,7 @@ stable_samples <- read.table("./data/EAPSIsamples_stable.txt", header = TRUE)
 ```
 ## Import counts data 
 ```{r}
-countdata <- read.delim("LPS_Pdam.counts", row.names = 1, skip = 1) # comment.char="#",
+countdata <- read.delim("./outputs/STARcounts_Pdam/LPS_Pdam.counts", row.names = 1, skip = 1) # comment.char="#",
 ```
 ## Tidy counts data
   Set Gene ID's as row names
@@ -37,8 +37,7 @@ countdata <- read.delim("LPS_Pdam.counts", row.names = 1, skip = 1) # comment.ch
 #rownames(countdata) <- countdata$Geneid
 countdata <- countdata[ ,6:ncol(countdata)]
   colnames(countdata) <- gsub("X.", "", colnames(countdata))
-  colnames(countdata) <- gsub("scratch.projects.transcriptomics.mikeconnelly.sequences.EAPSI.", "", colnames(countdata))
-  colnames(countdata) <- gsub("houwanwanglitung.LPS.STARalign_Pdam.", "", colnames(countdata))
+  colnames(countdata) <- gsub("scratch.projects.transcriptomics.mikeconnelly.projects.EAPSI_Pocillopora_LPS.outputs.STARalign_Pdam.", "", colnames(countdata))
   colnames(countdata) <- gsub("_PdamAligned.out.bam$", "", colnames(countdata))
 ```
 ## Import gene feature annotation information
@@ -183,7 +182,7 @@ res_LPS$IDGeneInfo <- as.character(res_LPS$IDGeneInfo)
 colnames(res_LPS)
 ```
 ```{r}
-pdf(file="~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/DEseq2_DispEsts+MA.pdf", width = 11, height = 8.5)
+pdf(file="./outputs/DESeq-results/figures/DEseq2_DispEsts+MA.pdf", width = 11, height = 8.5)
 plotDispEsts(dds_LPS)
 plotMA(res_LPS, ylim = c(-10, 10))
 ```
@@ -196,21 +195,9 @@ res_LPS_apeglm <- lfcShrink(dds_LPS, coef = "Treatment_LPS_vs_control", type = "
 res_LPS_apeglm$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
 res_LPS_apeglm$IDGeneInfo <- as.character(res_LPS_apeglm$IDGeneInfo)
 ```
-```{r}
-plotMA(res_LPS_shrink, ylim = c(-3, 3))
-plotMA(res_LPS_apeglm, ylim = c(-5, 5))
-```
-```{r}
-class(res_LPS_shrink)
-```
 
 ```{r}
-pdf(file="~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/DEseq2_MA_ggpubr.pdf", width = 11, height = 8.5)
-ggmaplot(data = res_LPS_shrink, fdr = 0.01, fc = 1.0, size = 1, palette = c("red", "blue", "dark grey"),
-         top = 20)
-```
-```{r}
-pdf(file="~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/DEseq2_MA_ggpubr.pdf", width = 4.25, height = 2.95)
+pdf(file="./outputs/DESeq-results/figures/DEseq2_MA_ggpubr.pdf", width = 4.25, height = 2.95)
 ggmalps <- ggmaplot(data = res_LPS_apeglm, fdr = 0.01, fc = 0.0, size = 2, palette = c("red", "blue", "dark grey"),
          top = 0,
          main = ("Differential Gene Expression MA Plot"),
@@ -252,7 +239,7 @@ res_WT1_normal <- lfcShrink(dds_WT1, coef = "Treatment_LPS_vs_control", type = "
 res_WT2_normal <- lfcShrink(dds_WT2, coef = "Treatment_LPS_vs_control", type = "normal")
 ```
 ```{r, message=FALSE}
-pdf(file="~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/DEseq2_MA_ggpubr_colonies.pdf", height = 2,  width = 2.12)
+pdf(file="./outputs/DESeq-results/figures/DEseq2_MA_ggpubr_colonies.pdf", height = 2,  width = 2.12)
 ggmalpsHW1 <- ggmaplot(data = res_HW1_normal, fdr = 0.01, fc = 0.0, size = 1, palette = c("red", "blue", "dark grey"),
          top = 0,
          main = "Houwan1",
