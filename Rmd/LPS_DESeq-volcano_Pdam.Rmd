@@ -9,7 +9,7 @@ LPS_Ctrl
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI.HW-WT-master/")
+knitr::opts_knit$set(root.dir = "~/computing/projects/EAPSI_Pocillopora_LPS")
 ```
 ## Setup packages and working directories
 ```{r packages, error=FALSE, warning=FALSE, message=FALSE}
@@ -40,7 +40,7 @@ class(res_LPS$log2FoldChange)
 
 ```{r, warning = FALSE}
 DEGcolors <- c("red", "blue", "dark grey")
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Volcano_LPS-ctrl.pdf", height = 3, width = 2.75)
+pdf(file = "./outputs/DESeq-results/figures/Volcano_LPS-ctrl.pdf", height = 3, width = 2.75)
 gVolcano_LPS_ctrl <- ggplot(data=dat_genes_LPS_ctrl, aes(log2FoldChange, log10padj))
 gVolcano_LPS_ctrl + geom_point(aes(color = threshold), alpha=0.7, size=2) +
   scale_color_manual(values = DEGcolors) +
@@ -74,10 +74,20 @@ dat_genes_LPS_ctrl$threshold <- factor(dat_genes_LPS_ctrl$threshold, levels = c(
 class(dat_genes_LPS_ctrl$log2FoldChange)
 class(res_LPS_normal$log2FoldChange)
 ```
-
+```{r}
+r1 <- gsub("\\(.+\\)", "", rownames(dat_genes_LPS_ctrl[1:6, ]))
+r1
+r2 <- gsub("H.+\\: ", "", r1)
+r2
+r3 <- gsub("C.+\\: ", "", r2)
+r3
+r4 <- gsub( "unknown function", "unknown", r3)
+r4
+rownames(dat_genes_LPS_ctrl[1:6, ])
+```
 ```{r, warning = FALSE}
 DEGcolors <- c("red", "blue", "dark grey")
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Volcano_LPS-ctrl_normal_labelled.pdf", height = 2.95, width = 4.25)
+pdf(file = "./outputs/DESeq-results/figures/Volcano_LPS-ctrl_normal_labelled.pdf", height = 2.95, width = 4.25)
 gVolcano_LPS_ctrl <- ggplot(data=dat_genes_LPS_ctrl, aes(log2FoldChange, log10padj))
 gVolcano_LPS_ctrl + geom_point(aes(color = threshold), alpha=1, size=2) +
   scale_color_manual(values = DEGcolors) +
@@ -90,18 +100,6 @@ gVolcano_LPS_ctrl + geom_point(aes(color = threshold), alpha=1, size=2) +
   theme(legend.position = "none") +
   ggtitle("Volcano Plot")
 ```
-```{r}
-r1 <- gsub("\\(.+\\)", "", rownames(dat_genes_LPS_ctrl[1:6, ]))
-r1
-r2 <- gsub("H.+\\: ", "", r1)
-r2
-r3 <- gsub("C.+\\: ", "", r2)
-r3
-r4 <- gsub( "unknown function", "unknown", r3)
-r4
-rownames(dat_genes_LPS_ctrl[1:6, ])
-```
-
 
 ### LPS vs. Control Differential Expression - apeglm LFC shrinkage
 ```{r}
@@ -123,7 +121,7 @@ class(res_LPS_apeglm$log2FoldChange)
 
 ```{r, warning = FALSE}
 DEGcolors <- c("red", "blue", "dark grey")
-#pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Volcano_LPS-ctrl_apeglm.pdf", height = 8.5, width = 11)
+#pdf(file = "./outputs/DESeq-results/figures/Volcano_LPS-ctrl_apeglm.pdf", height = 8.5, width = 11)
 gVolcano_LPS_ctrl <- ggplot(data=dat_genes_LPS_ctrl, aes(log2FoldChange, log10padj))
 gVolcano_LPS_ctrl + geom_point(aes(color = threshold), alpha=1, size=2) +
   scale_color_manual(values = DEGcolors) +
@@ -186,7 +184,7 @@ dat_genes_WT2_normal$threshold <- factor(dat_genes_WT2_normal$threshold, levels 
 
 ```{r, warning = FALSE}
 DEGcolors <- c("red", "blue", "dark grey")
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Volcano_LPS-ctrl_colonies.pdf", height = 2, width = 2.12)
+pdf(file = "./outputs/DESeq-results/figures/Volcano_LPS-ctrl_colonies.pdf", height = 2, width = 2.12)
 gVolcano_HW1_normal <- ggplot(data=dat_genes_HW1_normal, aes(log2FoldChange, log10padj))
 gVolcano_HW1_normal + geom_point(aes(color = threshold), alpha=1, size=2) +
   scale_color_manual(values = DEGcolors) +

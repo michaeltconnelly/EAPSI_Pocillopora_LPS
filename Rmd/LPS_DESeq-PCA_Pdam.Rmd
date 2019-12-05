@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI.HW-WT-master/")
+knitr::opts_knit$set(root.dir = "~/computing/projects/EAPSI_Pocillopora_LPS")
 ```
 ## Regularized-log transformations
 ```{r, include=FALSE}
@@ -121,7 +121,7 @@ PCAplot +
 ```
 
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/PCAs.pdf", height = 4, width = 4.25)
+pdf(file = "./outputs/DEseq-results/figures/PCAs.pdf", height = 4, width = 4.25)
 ggPCA(rld_LPS, stable_samples_LPS, pclab = c(1,2))
 ggPCA(rld_LPS, stable_samples_LPS, pclab = c(1,3))
 ggPCA(rld_LPS, stable_samples_LPS, pclab = c(1,4))
@@ -152,7 +152,7 @@ PCAplot +
 }
 ```
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/PCAs_geno.pdf", width = 6.5, height = 4)
+pdf(file = "./outputs/DEseq-results/figures/PCAs_geno.pdf", width = 6.5, height = 4)
 ggPCA_geno(rld_LPS, stable_samples_LPS, pclab = c(1,2))
 ggPCA_geno(rld_LPS, stable_samples_LPS, pclab = c(1,3))
 ggPCA_geno(rld_LPS, stable_samples_LPS, pclab = c(1,4))
@@ -183,7 +183,7 @@ PCAplot +
 }
 ```
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/PCAs_trmt.pdf", width = 11, height = 8.5)
+pdf(file = "./outputs/DEseq-results/figures/PCAs_trmt.pdf", width = 11, height = 8.5)
 ggPCA_trmt(rld_LPS, stable_samples_LPS, pclab = c(1,2))
 ggPCA_trmt(rld_LPS, stable_samples_LPS, pclab = c(1,3))
 ggPCA_trmt(rld_LPS, stable_samples_LPS, pclab = c(1,4))
@@ -212,7 +212,7 @@ PCAplot +
 }
 ```
 ```{r, message=FALSE}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/PCAs_colonies.pdf", height = 2, width = 2.12)
+pdf(file = "./outputs/DEseq-results/figures/PCAs_colonies.pdf", height = 2, width = 2.12)
 gHW1 <- ggPCA_col(rld_HW1, stable_samples_HW1, pclab = c(1,2))
  gHW1 + scale_shape_manual(values=colshapes[1], name = "Colony") + ggtitle("HW1")
 gHW2 <- ggPCA_col(rld_HW2, stable_samples_HW2, pclab = c(1,2))
@@ -231,7 +231,7 @@ LPS_loads_WT2 <- as.data.frame(PCA.load(rld_WT2, intgroup = c("Treatment"), ntop
 ```
 
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/PCA_ProcB.pdf", height = 3, width = 3.75)
+pdf(file = "./outputs/DEseq-results/figures/PCA_ProcB.pdf", height = 3, width = 3.75)
 ProcBpca <- ggPCA(rld_LPS, stable_samples_LPS, pclab = c(1,2))
 ProcBpca +   
   theme(plot.title = element_text(size = 12, hjust = 0, vjust = 1),

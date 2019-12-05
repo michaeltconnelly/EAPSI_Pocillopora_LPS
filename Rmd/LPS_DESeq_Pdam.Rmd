@@ -42,7 +42,7 @@ countdata <- countdata[ ,6:ncol(countdata)]
 ```
 ## Import gene feature annotation information
 ```{r}
-genefeatures <- read.delim(file = "/Users/mikeconnelly/computing/sequences/genomes/coral/pocillopora/pdam/pdam_genome_IDInfo.gff", header = F)
+genefeatures <- read.delim(file = "./data/pdam_genome_IDInfo.gff", header = F)
 colnames(genefeatures) <- c("IDGeneInfo")
 rownames(genefeatures) <- rownames(countdata)
 ```
