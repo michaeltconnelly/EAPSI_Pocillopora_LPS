@@ -31,22 +31,6 @@ write.csv(as.data.frame(ressig_LPS_ctrl_dn[order(ressig_LPS_ctrl_dn$log2FoldChan
 colnames(res_LPS_ctrl)
 summary(ressig_LPS_ctrl)
 ```
-```{bash}
-awk -F "," '{print $1}' ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/overall/res_LPS_ctrl.csv > ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_ID.txt
-sed -i '' 1d ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_ID.txt
-sed -i -e 's/"//g' ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_ID.txt
-rm ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_ID.txt-e
-
-awk -F "," '{print $1}' ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/up/res_LPS_ctrl_up.csv > ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_up_ID.txt
-sed -i '' 1d ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_up_ID.txt
-sed -i -e 's/"//g' ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_up_ID.txt
-rm ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_up_ID.txt-e
-
-awk -F "," '{print $1}' ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/tables/down/res_LPS_ctrl_dn.csv > ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_dn_ID.txt
-sed -i '' 1d ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_dn_ID.txt
-sed -i -e 's/"//g' ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_dn_ID.txt
-rm ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_dn_ID.txt-e
-```
 
 ## Results contrasts between different coral genotypes
 ### Houwan1 vs. Houwan2
@@ -208,21 +192,5 @@ write.csv(as.data.frame(ressig_WT2_LPS_up[order(ressig_WT2_LPS_up$log2FoldChange
 write.csv(as.data.frame(ressig_WT2_LPS_dn[order(ressig_WT2_LPS_dn$log2FoldChange, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/down/res_WT2_LPS_dn.csv")
 colnames(res_WT2_LPS)
 summary(ressig_WT2_LPS)
-```
-
-### LPS vs. Control, LFC-shrink normal results
-```{r}
-res_LPS_normal$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
-res_LPS_normal$IDGeneInfo <- as.character(res_LPS_ctrl$IDGeneInfo)
-colnames(res_LPS_normal)
-summary(res_LPS_normal)
-ressig_LPS_normal <- subset(res_LPS_normal, padj<0.01)
-ressig_LPS_normal_up <- subset(res_LPS_normal, padj<0.01 & log2FoldChange>0)
-ressig_LPS_normal_dn <- subset(res_LPS_normal, padj<0.01 & log2FoldChange<0)
-summary(ressig_LPS_normal_up)
-
-#write.csv(as.data.frame(ressig_LPS_ctrl[order(ressig_LPS_ctrl$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/overall/res_LPS_ctrl.csv")
-#write.csv(as.data.frame(ressig_LPS_ctrl_up[order(ressig_LPS_ctrl_up$log2FoldChange, decreasing = TRUE),]), file = "./outputs/DESeq-results/tables/up/res_LPS_ctrl_up.csv")
-#write.csv(as.data.frame(ressig_LPS_ctrl_dn[order(ressig_LPS_ctrl_dn$log2FoldChange, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/down/res_LPS_ctrl_dn.csv")
 ```
 
