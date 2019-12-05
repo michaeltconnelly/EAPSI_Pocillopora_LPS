@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI.HW-WT-master")
+knitr::opts_knit$set(root.dir = "~/computing/projects/EAPSI_Pocillopora_LPS")
 options(stringsAsFactors = F)
 ```
 ## Setup packages and working directories
@@ -112,7 +112,7 @@ mat20  <- mat20 - rowMeans(mat20)
 ```
 ## 20 Gene Heatmap
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_top20.pdf", width = 6.5, height = 4)
+pdf(file = "./outputs/DESeq-results/figures/Heatmap_top20.pdf", width = 6.5, height = 4)
 pheatmap(mat20, col=geneexpcolors,
          annotation_col = anno_col,
          annotation_row = NULL,
@@ -135,7 +135,7 @@ rownames(mat50) <- rowData(rld_LPS)$IDGeneInfo[topVarGenes50]
 ```
 ## 50 Gene Heatmap
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_top50.pdf", width = 11, height = 8.5)
+pdf(file = "./outputs/DESeq-results/figures/Heatmap_top50.pdf", width = 11, height = 8.5)
 pheatmap(mat50, col=geneexpcolors,
          annotation_col = anno_col,
          annotation_row = NULL,
@@ -159,7 +159,7 @@ rownames(mat500) <- rowData(rld_LPS)$IDGeneInfo[topVarGenes500]
 
 ## 500 Gene Heatmap
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_top500.pdf", width = 8, height = 4)
+pdf(file = "./outputs/DESeq-results/figures/Heatmap_top500.pdf", width = 8, height = 4)
 pheatmap(mat500, col=geneexpcolors,
          annotation_col = anno_col,
          annotation_row = NULL,
@@ -185,7 +185,7 @@ mat_ressig_LPS_ctrl_up  <- mat_ressig_LPS_ctrl_up - rowMeans(mat_ressig_LPS_ctrl
 ```
 ## LPS-Control up DEG Heatmap
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_upDEG.pdf", width = 16, height = 16)
+pdf(file = "./outputs/DESeq-results/figures/Heatmap_upDEG.pdf", width = 16, height = 16)
 pheatmap(mat_ressig_LPS_ctrl_up, col=geneexpcolors,
          annotation_col = anno_col,
          annotation_row = NULL,
@@ -210,7 +210,7 @@ mat_ressig_LPS_ctrl_dn  <- mat_ressig_LPS_ctrl_dn - rowMeans(mat_ressig_LPS_ctrl
 ```
 ## LPS-Control dn DEG Heatmap
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_dnDEG.pdf", width = 16, height = 14)
+pdf(file = "./outputs/DESeq-results/figures/Heatmap_dnDEG.pdf", width = 16, height = 14)
 pheatmap(mat_ressig_LPS_ctrl_dn, col=geneexpcolors,
          annotation_col = anno_col,
          annotation_row = NULL,
@@ -235,7 +235,7 @@ min(mat_ressig_LPS)
 
 ## LPS-Control DEG Heatmap
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_allDEG_4.pdf", width = 8.5, height = 3.5)
+pdf(file = "./outputs/DESeq-results/figures/Heatmap_allDEG_4.pdf", width = 8.5, height = 3.5)
 pheatmap(mat_ressig_LPS, col=mypalette,
          annotation_col = anno_col[,c("Colony", "Treatment")],
          annotation_row = anno_row,
@@ -281,7 +281,7 @@ mat_PC1_load_LPS  <- mat_PC1_load_LPS - rowMeans(mat_PC1_load_LPS)
 ```
 ## LPS-Control PC1 loadings Heatmap
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_PC1load.pdf", width = 11, height = 8.5)
+pdf(file = "./outputs/DESeq-results/figures/Heatmap_PC1load.pdf", width = 11, height = 8.5)
 pheatmap(mat_PC1_load_LPS, col=geneexpcolors,
          annotation_col = anno_col,
          annotation_row = NULL,
@@ -303,7 +303,7 @@ mat_ressig_HW1_LPS_ctrl_up  <- assay(rld_HW1)[rownames_ressig_HW1_LPS_ctrl_up, ]
 row.names(mat_ressig_HW1_LPS_ctrl_up) <- ressig_HW1_LPS_up$IDGeneInfo
 ```
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_HW1_upDEG.pdf", width = 16, height = 16)
+pdf(file = "./outputs/DESeq-results/figures/Heatmap_HW1_upDEG.pdf", width = 16, height = 16)
 pheatmap(mat_ressig_HW1_LPS_ctrl_up, col=geneexpcolors,
          annotation_col = anno_col,
          annotation_row = NULL,
@@ -324,7 +324,7 @@ mat_ressig_HW2_LPS_ctrl_up  <- assay(rld_HW2)[rownames_ressig_HW2_LPS_ctrl_up, ]
 row.names(mat_ressig_HW2_LPS_ctrl_up) <- ressig_HW2_LPS_up$IDGeneInfo
 ```
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_HW2_upDEG.pdf", width = 16, height = 16)
+pdf(file = "./outputs/DESeq-results/figures/Heatmap_HW2_upDEG.pdf", width = 16, height = 16)
 pheatmap(mat_ressig_HW2_LPS_ctrl_up, col=geneexpcolors,
          annotation_col = anno_col,
          annotation_row = NULL,
@@ -345,7 +345,7 @@ mat_ressig_WT1_LPS_ctrl_up  <- assay(rld_WT1)[rownames_ressig_WT1_LPS_ctrl_up, ]
 row.names(mat_ressig_WT1_LPS_ctrl_up) <- ressig_WT1_LPS_up$IDGeneInfo
 ```
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_WT1_upDEG.pdf", width = 16, height = 16)
+pdf(file = "./outputs/DESeq-results/figures/Heatmap_WT1_upDEG.pdf", width = 16, height = 16)
 pheatmap(mat_ressig_WT1_LPS_ctrl_up, col=geneexpcolors,
          annotation_col = anno_col,
          annotation_row = NULL,
@@ -366,7 +366,7 @@ mat_ressig_WT2_LPS_ctrl_up  <- assay(rld_WT2)[rownames_ressig_WT2_LPS_ctrl_up, ]
 row.names(mat_ressig_WT2_LPS_ctrl_up) <- ressig_WT2_LPS_up$IDGeneInfo
 ```
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_WT2_upDEG.pdf", width = 16, height = 16)
+pdf(file = "./outputs/DESeq-results/figures/Heatmap_WT2_upDEG.pdf", width = 16, height = 16)
 pheatmap(mat_ressig_WT2_LPS_ctrl_up, col=geneexpcolors,
          annotation_col = anno_col,
          annotation_row = NULL,
@@ -382,7 +382,7 @@ pheatmap(mat_ressig_WT2_LPS_ctrl_up, col=geneexpcolors,
 ## Selected DEG Heatmap
 ```{r geneheatmap, message = FALSE, warning = FALSE}
 #Create heatmap matrix and annotation groupings
-selectDEGs <- read.delim("~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/selectDEGs.txt", header = FALSE)
+selectDEGs <- read.delim("./outputs/DESeq-results/selectDEGs.txt", header = FALSE)
 selDEGs <- match(selectDEGs$V1, rownames(res_LPS))
 mat_selectDEgs  <- assay(rld_LPS)[selDEGs, ]
 row.names(mat_selectDEgs) <- res_LPS$IDGeneInfo[selDEGs]
@@ -399,7 +399,7 @@ row.names(mat_selectDEgs) <- res_LPS$IDGeneInfo[selDEGs]
 mat_selectDEgs <- mat_selectDEgs - rowMeans(mat_selectDEgs)
 ```
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/selectDEGs.pdf", width = 13.5, height = 6)
+pdf(file = "./outputs/DESeq-results/figures/selectDEGs.pdf", width = 13.5, height = 6)
 pheatmap(mat_selectDEgs, col=geneexpcolors,
          annotation_col = anno_col,
          annotation_row = NULL,
@@ -550,7 +550,7 @@ anno_row_WT2$Gene <- NULL
 
 ## LPS-Control DEG Colony-Specific Heatmaps
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_allDEG_colonies.pdf", width = 2.12, height = 2)
+pdf(file = "./outputs/DESeq-results/figures/Heatmap_allDEG_colonies.pdf", width = 2.12, height = 2)
 pheatmap(mat_ressig_HW1_LPS, col=mypalette,
          annotation_col = anno_col_HW1,
          annotation_row = anno_row_HW1,
@@ -657,7 +657,7 @@ rownames(mat_consensus_up)
 
 ### Consensus DEG heatmap
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_consensusDEGs_1.pdf", width = 6.5, height = 2)
+pdf(file = "./outputs/DESeq-results/figures/Heatmap_consensusDEGs_1.pdf", width = 6.5, height = 2)
 pheatmap(mat_consensus_up, col=mypalette,
          annotation_col = anno_col[,c("Colony", "Treatment")],
          #annotation_row = anno_row,
@@ -678,7 +678,7 @@ pheatmap(mat_consensus_up, col=mypalette,
          cutree_cols = 2)
 ```
 ```{r}
-#pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/Heatmap_consensusDEGs_2.pdf", width = 8.5, height = 3)
+#pdf(file = "./outputs/DESeq-results/figures/Heatmap_consensusDEGs_2.pdf", width = 8.5, height = 3)
 pheatmap(mat_consensus_up, col=geneexpcolors,
          annotation_col = anno_col[,c("Colony", "Treatment")],
          annotation_row = anno_row,
