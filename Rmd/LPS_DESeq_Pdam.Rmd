@@ -89,6 +89,14 @@ stable_samples_WT2 <- filter(stable_samples_LPS, Colony == "WT2")# %>% select(-c
       dds_LPS$Treatment <- factor(dds_LPS$Treatment, levels=c("control", "LPS"))
 relevel(dds_LPS$Treatment, ref = "control")
 ```
+
+### Interaction DESeq model
+```{r, message=FALSE}
+      dds_LPS_int <- DESeqDataSetFromMatrix(countData=countdata_LPS, colData=stable_samples_LPS, design= ~Batch + Colony + Treatment + Colony*Treatment)
+      dds_LPS_int$Treatment <- factor(dds_LPS$Treatment, levels=c("control", "LPS"))
+relevel(dds_LPS$Treatment, ref = "control")
+```
+
 ```{r, message=FALSE}
       dds_HW1 <- DESeqDataSetFromMatrix(countData=countdata_HW1, colData=stable_samples_HW1, design= ~Batch + Treatment)
       dds_HW1$Treatment <- factor(dds_HW1$Treatment, levels=c("control", "LPS"))
@@ -118,6 +126,7 @@ all(rownames(dds_LPS) == rownames(genefeatures))
 ## Add gene feature annotation to DESeqDataSets
 ```{r}
 mcols(dds_LPS) <- cbind(mcols(dds_LPS), genefeatures)
+mcols(dds_LPS_int) <- cbind(mcols(dds_LPS_int), genefeatures)
 names(mcols(dds_LPS))
 ```
 ```{r}
@@ -130,6 +139,7 @@ mcols(dds_WT2) <- cbind(mcols(dds_WT2), genefeatures)
 ## Perform DESeq2 analyses
 ```{r, message=FALSE}
       dds_LPS <- DESeq(dds_LPS)
+      dds_LPS_int <- DESeq(dds_LPS_int)
 ```
 ```{r, message=FALSE}
       dds_HW1 <- DESeq(dds_HW1)
@@ -142,6 +152,7 @@ mcols(dds_WT2) <- cbind(mcols(dds_WT2), genefeatures)
 ```{r}
       keep <- rowSums(counts(dds_LPS), na.rm = TRUE) >= 10
       dds_LPS <- dds_LPS[keep,]
+      dds_LPS_int <- dds_LPS_int[keep,]
 ```
 ```{r}
       dds_HW1 <- dds_HW1[keep,]
@@ -153,6 +164,7 @@ mcols(dds_WT2) <- cbind(mcols(dds_WT2), genefeatures)
 ## Obtain DESeq results
 ```{r}
       res_LPS <- results(dds_LPS)
+      res_LPS_int <- results(dds_LPS_int)
 ```
 ```{r}
       res_HW1 <- results(dds_HW1)
@@ -164,12 +176,15 @@ mcols(dds_WT2) <- cbind(mcols(dds_WT2), genefeatures)
 ## Check output of LPS DESeq2 analysis to ensure quality
 ```{r}
 resultsNames(dds_LPS)
+resultsNames(dds_LPS_int)
 ```
 ```{r}
 summary(res_LPS)
+summary(res_LPS_int)
 ```
 ```{r}
 mcols(dds_LPS)
+mcols(dds_LPS_int)
 ```
 ```{r}
 rownames(dds_LPS)
