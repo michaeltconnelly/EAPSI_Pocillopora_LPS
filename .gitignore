@@ -5,5 +5,5 @@
 
 .Rproj.user
 .DS_Store
-outputs/.DS_Store
+outputs/*
 outputs/DESeq-results/.DS_Store

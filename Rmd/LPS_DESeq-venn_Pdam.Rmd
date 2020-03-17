@@ -1,36 +1,42 @@
 ---
 title: "LPS_DESeq-venn_Pdam"
 author: "Mike Connelly"
-date: "11/5/2019"
+date: "3/17/2020"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI_HW-WT-master/")
+knitr::opts_knit$set(root.dir = "~/computing/projects/EAPSI_Pocillopora_LPS")
 ```
-
-# Colony-specific DEG venn intersects
 ```{r}
-sumDEGsHW <- union(ressig_HW1_LPS$IDGeneInfo, ressig_HW2_LPS$IDGeneInfo)
-sumDEGsWT <- union(ressig_WT1_LPS$IDGeneInfo, ressig_WT2_LPS$IDGeneInfo)
+library(VennDiagram)
+library(extrafont)
+library(extrafontdb)
+```
+#1% FDR Threshold
+## Colony-specific DEG venn intersects
+```{r}
+sumDEGsHW <- union(resfdr1_HW1_LPS$IDGeneInfo, resfdr1_HW2_LPS$IDGeneInfo)
+sumDEGsWT <- union(resfdr1_WT1_LPS$IDGeneInfo, resfdr1_WT2_LPS$IDGeneInfo)
 sumDEGs <- union(sumDEGsHW, sumDEGsWT)
 length(sumDEGs)
 
 ##Pairwise
-HW1_HW2 <- intersect(ressig_HW1_LPS$IDGeneInfo, ressig_HW2_LPS$IDGeneInfo)
-HW1_WT1 <- intersect(ressig_HW1_LPS$IDGeneInfo, ressig_WT1_LPS$IDGeneInfo)
-HW1_WT2 <- intersect(ressig_HW1_LPS$IDGeneInfo, ressig_WT2_LPS$IDGeneInfo)
-HW2_WT1 <- intersect(ressig_HW2_LPS$IDGeneInfo, ressig_WT1_LPS$IDGeneInfo)
-HW2_WT2 <- intersect(ressig_HW2_LPS$IDGeneInfo, ressig_WT2_LPS$IDGeneInfo)
-WT1_WT2 <- intersect(ressig_WT1_LPS$IDGeneInfo, ressig_WT2_LPS$IDGeneInfo)
+HW1_HW2 <- intersect(resfdr1_HW1_LPS$IDGeneInfo, resfdr1_HW2_LPS$IDGeneInfo)
+HW1_WT1 <- intersect(resfdr1_HW1_LPS$IDGeneInfo, resfdr1_WT1_LPS$IDGeneInfo)
+HW1_WT2 <- intersect(resfdr1_HW1_LPS$IDGeneInfo, resfdr1_WT2_LPS$IDGeneInfo)
+HW2_WT1 <- intersect(resfdr1_HW2_LPS$IDGeneInfo, resfdr1_WT1_LPS$IDGeneInfo)
+HW2_WT2 <- intersect(resfdr1_HW2_LPS$IDGeneInfo, resfdr1_WT2_LPS$IDGeneInfo)
+WT1_WT2 <- intersect(resfdr1_WT1_LPS$IDGeneInfo, resfdr1_WT2_LPS$IDGeneInfo)
 ##Triple
-HW1_HW2_WT1 <- intersect(HW1_HW2, ressig_WT1_LPS$IDGeneInfo)
-HW1_HW2_WT2 <- intersect(HW1_HW2, ressig_WT2_LPS$IDGeneInfo)
-HW1_WT1_WT2 <- intersect(WT1_WT2, ressig_HW1_LPS$IDGeneInfo)
-HW2_WT1_WT2 <- intersect(WT1_WT2, ressig_HW2_LPS$IDGeneInfo)
+HW1_HW2_WT1 <- intersect(HW1_HW2, resfdr1_WT1_LPS$IDGeneInfo)
+HW1_HW2_WT2 <- intersect(HW1_HW2, resfdr1_WT2_LPS$IDGeneInfo)
+HW1_WT1_WT2 <- intersect(WT1_WT2, resfdr1_HW1_LPS$IDGeneInfo)
+HW2_WT1_WT2 <- intersect(WT1_WT2, resfdr1_HW2_LPS$IDGeneInfo)
 ##Quadruple
 HW12_WT12 <- intersect(HW1_HW2, WT1_WT2)
+HW12_WT12
 ```
 ```{r}
 setdiff(HW1_WT2, HW12_WT12)
@@ -39,20 +45,19 @@ setdiff(HW1_WT2, HW12_WT12)
 setdiff(WT1_WT2, HW12_WT12)
 ```
 ```{r}
-setdiff(ressig_WT2_LPS$IDGeneInfo, sumDEGsHW)
+setdiff(resfdr1_WT2_LPS$IDGeneInfo, sumDEGsHW)
 ```
 ```{r}
-library(VennDiagram)
-pdf("~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/LPS_colony_Venn2.pdf", height = 3, width = 3)
+pdf("./outputs/DESeq-results/figures/LPS_colony_Venn2_FDR1.pdf", height = 3, width = 3)
 vp = viewport(height = unit(2, "in"),  width = unit(2, "in"))
 grid.newpage()
 grid.rect(vp = vp, gp = gpar(col = "white"))
 
 #HW1, WT2, HW2, WT1
-LPS_venn <- draw.quad.venn(area1 = length(ressig_HW1_LPS$IDGeneInfo),
-               area2 = length(ressig_WT2_LPS$IDGeneInfo),
-               area3 = length(ressig_HW2_LPS$IDGeneInfo),
-               area4 = length(ressig_WT1_LPS$IDGeneInfo),
+LPS_venn <- draw.quad.venn(area1 = length(resfdr1_HW1_LPS$IDGeneInfo),
+               area2 = length(resfdr1_WT2_LPS$IDGeneInfo),
+               area3 = length(resfdr1_HW2_LPS$IDGeneInfo),
+               area4 = length(resfdr1_WT1_LPS$IDGeneInfo),
                n12 = length(HW1_WT2),
                n13 = length(HW1_HW2),
                n14 = length(HW1_WT1),
@@ -82,25 +87,25 @@ LPS_venn <- draw.quad.venn(area1 = length(ressig_HW1_LPS$IDGeneInfo),
 grid.draw(LPS_venn)
 ```
 
-# Colony-specific up Venn
+## Colony-specific up Venn
 ```{r}
-sumDEGsHW <- union(ressig_HW1_LPS_up$IDGeneInfo, ressig_HW2_LPS_up$IDGeneInfo)
-sumDEGsWT <- union(ressig_WT1_LPS_up$IDGeneInfo, ressig_WT2_LPS_up$IDGeneInfo)
+sumDEGsHW <- union(resfdr1_HW1_LPS_up$IDGeneInfo, resfdr1_HW2_LPS_up$IDGeneInfo)
+sumDEGsWT <- union(resfdr1_WT1_LPS_up$IDGeneInfo, resfdr1_WT2_LPS_up$IDGeneInfo)
 sumDEGs <- union(sumDEGsHW, sumDEGsWT)
 length(sumDEGsWT)
 
 ##Pairwise
-HW1_HW2 <- intersect(ressig_HW1_LPS_up$IDGeneInfo, ressig_HW2_LPS_up$IDGeneInfo)
-HW1_WT1 <- intersect(ressig_HW1_LPS_up$IDGeneInfo, ressig_WT1_LPS_up$IDGeneInfo)
-HW1_WT2 <- intersect(ressig_HW1_LPS_up$IDGeneInfo, ressig_WT2_LPS_up$IDGeneInfo)
-HW2_WT1 <- intersect(ressig_HW2_LPS_up$IDGeneInfo, ressig_WT1_LPS_up$IDGeneInfo)
-HW2_WT2 <- intersect(ressig_HW2_LPS_up$IDGeneInfo, ressig_WT2_LPS_up$IDGeneInfo)
-WT1_WT2 <- intersect(ressig_WT1_LPS_up$IDGeneInfo, ressig_WT2_LPS_up$IDGeneInfo)
+HW1_HW2 <- intersect(resfdr1_HW1_LPS_up$IDGeneInfo, resfdr1_HW2_LPS_up$IDGeneInfo)
+HW1_WT1 <- intersect(resfdr1_HW1_LPS_up$IDGeneInfo, resfdr1_WT1_LPS_up$IDGeneInfo)
+HW1_WT2 <- intersect(resfdr1_HW1_LPS_up$IDGeneInfo, resfdr1_WT2_LPS_up$IDGeneInfo)
+HW2_WT1 <- intersect(resfdr1_HW2_LPS_up$IDGeneInfo, resfdr1_WT1_LPS_up$IDGeneInfo)
+HW2_WT2 <- intersect(resfdr1_HW2_LPS_up$IDGeneInfo, resfdr1_WT2_LPS_up$IDGeneInfo)
+WT1_WT2 <- intersect(resfdr1_WT1_LPS_up$IDGeneInfo, resfdr1_WT2_LPS_up$IDGeneInfo)
 ##Triple
-HW1_HW2_WT1 <- intersect(HW1_HW2, ressig_WT1_LPS_up$IDGeneInfo)
-HW1_HW2_WT2 <- intersect(HW1_HW2, ressig_WT2_LPS_up$IDGeneInfo)
-HW1_WT1_WT2 <- intersect(WT1_WT2, ressig_HW1_LPS_up$IDGeneInfo)
-HW2_WT1_WT2 <- intersect(WT1_WT2, ressig_HW2_LPS_up$IDGeneInfo)
+HW1_HW2_WT1 <- intersect(HW1_HW2, resfdr1_WT1_LPS_up$IDGeneInfo)
+HW1_HW2_WT2 <- intersect(HW1_HW2, resfdr1_WT2_LPS_up$IDGeneInfo)
+HW1_WT1_WT2 <- intersect(WT1_WT2, resfdr1_HW1_LPS_up$IDGeneInfo)
+HW2_WT1_WT2 <- intersect(WT1_WT2, resfdr1_HW2_LPS_up$IDGeneInfo)
 ##Quadruple
 HW12_WT12 <- intersect(HW1_HW2, WT1_WT2)
 ```
@@ -112,20 +117,19 @@ setdiff(WT1_WT2, HW12_WT12)
 ```
 
 ```{r}
-setdiff(ressig_WT2_LPS$IDGeneInfo, sumDEGsHW)
+setdiff(resfdr1_WT2_LPS$IDGeneInfo, sumDEGsHW)
 ```
 ```{r}
-library(VennDiagram)
-pdf("~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/LPS_colony_Venn_up.pdf", height = 3, width = 3)
+pdf("./outputs/DESeq-results/figures/LPS_colony_Venn_up_FDR1.pdf", height = 3, width = 3)
 vp = viewport(height = unit(2, "in"),  width = unit(2, "in"))
 grid.newpage()
 grid.rect(vp = vp, gp = gpar(col = "white"))
 
 #HW1, WT2, HW2, WT1
-LPS_venn <- draw.quad.venn(area1 = length(ressig_HW1_LPS_up$IDGeneInfo),
-               area2 = length(ressig_WT2_LPS_up$IDGeneInfo),
-               area3 = length(ressig_HW2_LPS_up$IDGeneInfo),
-               area4 = length(ressig_WT1_LPS_up$IDGeneInfo),
+LPS_venn <- draw.quad.venn(area1 = length(resfdr1_HW1_LPS_up$IDGeneInfo),
+               area2 = length(resfdr1_WT2_LPS_up$IDGeneInfo),
+               area3 = length(resfdr1_HW2_LPS_up$IDGeneInfo),
+               area4 = length(resfdr1_WT1_LPS_up$IDGeneInfo),
                n12 = length(HW1_WT2),
                n13 = length(HW1_HW2),
                n14 = length(HW1_WT1),
@@ -155,25 +159,25 @@ LPS_venn <- draw.quad.venn(area1 = length(ressig_HW1_LPS_up$IDGeneInfo),
 grid.draw(LPS_venn)
 ```
 
-# Colony-specific down Venn
+## Colony-specific down Venn
 ```{r}
-sumDEGsHW <- union(ressig_HW1_LPS_dn$IDGeneInfo, ressig_HW2_LPS_dn$IDGeneInfo)
-sumDEGsWT <- union(ressig_WT1_LPS_dn$IDGeneInfo, ressig_WT2_LPS_dn$IDGeneInfo)
+sumDEGsHW <- union(resfdr1_HW1_LPS_dn$IDGeneInfo, resfdr1_HW2_LPS_dn$IDGeneInfo)
+sumDEGsWT <- union(resfdr1_WT1_LPS_dn$IDGeneInfo, resfdr1_WT2_LPS_dn$IDGeneInfo)
 sumDEGs <- union(sumDEGsHW, sumDEGsWT)
 length(sumDEGsWT)
 
 ##Pairwise
-HW1_HW2 <- intersect(ressig_HW1_LPS_dn$IDGeneInfo, ressig_HW2_LPS_dn$IDGeneInfo)
-HW1_WT1 <- intersect(ressig_HW1_LPS_dn$IDGeneInfo, ressig_WT1_LPS_dn$IDGeneInfo)
-HW1_WT2 <- intersect(ressig_HW1_LPS_dn$IDGeneInfo, ressig_WT2_LPS_dn$IDGeneInfo)
-HW2_WT1 <- intersect(ressig_HW2_LPS_dn$IDGeneInfo, ressig_WT1_LPS_dn$IDGeneInfo)
-HW2_WT2 <- intersect(ressig_HW2_LPS_dn$IDGeneInfo, ressig_WT2_LPS_dn$IDGeneInfo)
-WT1_WT2 <- intersect(ressig_WT1_LPS_dn$IDGeneInfo, ressig_WT2_LPS_dn$IDGeneInfo)
+HW1_HW2 <- intersect(resfdr1_HW1_LPS_dn$IDGeneInfo, resfdr1_HW2_LPS_dn$IDGeneInfo)
+HW1_WT1 <- intersect(resfdr1_HW1_LPS_dn$IDGeneInfo, resfdr1_WT1_LPS_dn$IDGeneInfo)
+HW1_WT2 <- intersect(resfdr1_HW1_LPS_dn$IDGeneInfo, resfdr1_WT2_LPS_dn$IDGeneInfo)
+HW2_WT1 <- intersect(resfdr1_HW2_LPS_dn$IDGeneInfo, resfdr1_WT1_LPS_dn$IDGeneInfo)
+HW2_WT2 <- intersect(resfdr1_HW2_LPS_dn$IDGeneInfo, resfdr1_WT2_LPS_dn$IDGeneInfo)
+WT1_WT2 <- intersect(resfdr1_WT1_LPS_dn$IDGeneInfo, resfdr1_WT2_LPS_dn$IDGeneInfo)
 ##Triple
-HW1_HW2_WT1 <- intersect(HW1_HW2, ressig_WT1_LPS_dn$IDGeneInfo)
-HW1_HW2_WT2 <- intersect(HW1_HW2, ressig_WT2_LPS_dn$IDGeneInfo)
-HW1_WT1_WT2 <- intersect(WT1_WT2, ressig_HW1_LPS_dn$IDGeneInfo)
-HW2_WT1_WT2 <- intersect(WT1_WT2, ressig_HW2_LPS_dn$IDGeneInfo)
+HW1_HW2_WT1 <- intersect(HW1_HW2, resfdr1_WT1_LPS_dn$IDGeneInfo)
+HW1_HW2_WT2 <- intersect(HW1_HW2, resfdr1_WT2_LPS_dn$IDGeneInfo)
+HW1_WT1_WT2 <- intersect(WT1_WT2, resfdr1_HW1_LPS_dn$IDGeneInfo)
+HW2_WT1_WT2 <- intersect(WT1_WT2, resfdr1_HW2_LPS_dn$IDGeneInfo)
 ##Quadruple
 HW12_WT12 <- intersect(HW1_HW2, WT1_WT2)
 ```
@@ -185,20 +189,20 @@ setdiff(WT1_WT2, HW12_WT12)
 ```
 
 ```{r}
-setdiff(ressig_WT2_LPS$IDGeneInfo, sumDEGsHW)
+setdiff(resfdr1_WT2_LPS$IDGeneInfo, sumDEGsHW)
 ```
 ```{r}
 library(VennDiagram)
-pdf("~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/LPS_colony_Venn_dn.pdf", height = 3, width = 3)
+pdf("./outputs/DESeq-results/figures/LPS_colony_Venn_dn_FDR5.pdf", height = 3, width = 3)
 vp = viewport(height = unit(2, "in"),  width = unit(2, "in"))
 grid.newpage()
 grid.rect(vp = vp, gp = gpar(col = "white"))
 
 #HW1, WT2, HW2, WT1
-LPS_venn <- draw.quad.venn(area1 = length(ressig_HW1_LPS_dn$IDGeneInfo),
-               area2 = length(ressig_WT2_LPS_dn$IDGeneInfo),
-               area3 = length(ressig_HW2_LPS_dn$IDGeneInfo),
-               area4 = length(ressig_WT1_LPS_dn$IDGeneInfo),
+LPS_venn <- draw.quad.venn(area1 = length(resfdr1_HW1_LPS_dn$IDGeneInfo),
+               area2 = length(resfdr1_WT2_LPS_dn$IDGeneInfo),
+               area3 = length(resfdr1_HW2_LPS_dn$IDGeneInfo),
+               area4 = length(resfdr1_WT1_LPS_dn$IDGeneInfo),
                n12 = length(HW1_WT2),
                n13 = length(HW1_HW2),
                n14 = length(HW1_WT1),
@@ -228,26 +232,371 @@ LPS_venn <- draw.quad.venn(area1 = length(ressig_HW1_LPS_dn$IDGeneInfo),
 grid.draw(LPS_venn)
 ```
 
-# Overall and Colony-specific DEG Venn
+## Overall and Colony-specific DEG Venn
 ```{r}
-overall <- union(sumDEGs, ressig_LPS_ctrl$IDGeneInfo)
+overall <- union(sumDEGs, resfdr1_LPS_ctrl$IDGeneInfo)
 length(overall)
-overallgenotypes <- intersect(sumDEGs, ressig_LPS_ctrl$IDGeneInfo)
+overallgenotypes <- intersect(sumDEGs, resfdr1_LPS_ctrl$IDGeneInfo)
 length(overallgenotypes)
 ```
 ```{r}
-HW1_unique <- setdiff(rownames(ressig_HW1_LPS), rownames(ressig_LPS_ctrl))
-setdiff(ressig_HW1_LPS$IDGeneInfo, ressig_LPS_ctrl$IDGeneInfo)
+HW1_unique <- setdiff(rownames(resfdr1_HW1_LPS), rownames(resfdr1_LPS_ctrl))
+setdiff(resfdr1_HW1_LPS$IDGeneInfo, resfdr1_LPS_ctrl$IDGeneInfo)
 ```
 ```{r}
-HW2_unique <- setdiff(rownames(ressig_HW2_LPS), rownames(ressig_LPS_ctrl))
-setdiff(ressig_HW2_LPS$IDGeneInfo, ressig_LPS_ctrl$IDGeneInfo)
+HW2_unique <- setdiff(rownames(resfdr1_HW2_LPS), rownames(resfdr1_LPS_ctrl))
+setdiff(resfdr1_HW2_LPS$IDGeneInfo, resfdr1_LPS_ctrl$IDGeneInfo)
 ```
 ```{r}
-WT1_unique <- setdiff(rownames(ressig_WT1_LPS), rownames(ressig_LPS_ctrl))
-setdiff(ressig_WT1_LPS$IDGeneInfo, ressig_LPS_ctrl$IDGeneInfo)
+WT1_unique <- setdiff(rownames(resfdr1_WT1_LPS), rownames(resfdr1_LPS_ctrl))
+setdiff(resfdr1_WT1_LPS$IDGeneInfo, resfdr1_LPS_ctrl$IDGeneInfo)
 ```
 ```{r}
-WT2_unique <- setdiff(rownames(ressig_WT2_LPS), rownames(ressig_LPS_ctrl))
-setdiff(ressig_WT2_LPS$IDGeneInfo, ressig_LPS_ctrl$IDGeneInfo)
+WT2_unique <- setdiff(rownames(resfdr1_WT2_LPS), rownames(resfdr1_LPS_ctrl))
+setdiff(resfdr1_WT2_LPS$IDGeneInfo, resfdr1_LPS_ctrl$IDGeneInfo)
 ```
+
+#5% FDR Threshold
+## Colony-specific DEG venn intersects
+```{r}
+sumDEGsHW <- union(resfdr5_HW1_LPS$IDGeneInfo, resfdr5_HW2_LPS$IDGeneInfo)
+sumDEGsWT <- union(resfdr5_WT1_LPS$IDGeneInfo, resfdr5_WT2_LPS$IDGeneInfo)
+sumDEGs <- union(sumDEGsHW, sumDEGsWT)
+length(sumDEGs)
+
+##Pairwise
+HW1_HW2 <- intersect(resfdr5_HW1_LPS$IDGeneInfo, resfdr5_HW2_LPS$IDGeneInfo)
+HW1_WT1 <- intersect(resfdr5_HW1_LPS$IDGeneInfo, resfdr5_WT1_LPS$IDGeneInfo)
+HW1_WT2 <- intersect(resfdr5_HW1_LPS$IDGeneInfo, resfdr5_WT2_LPS$IDGeneInfo)
+HW2_WT1 <- intersect(resfdr5_HW2_LPS$IDGeneInfo, resfdr5_WT1_LPS$IDGeneInfo)
+HW2_WT2 <- intersect(resfdr5_HW2_LPS$IDGeneInfo, resfdr5_WT2_LPS$IDGeneInfo)
+WT1_WT2 <- intersect(resfdr5_WT1_LPS$IDGeneInfo, resfdr5_WT2_LPS$IDGeneInfo)
+##Triple
+HW1_HW2_WT1 <- intersect(HW1_HW2, resfdr5_WT1_LPS$IDGeneInfo)
+HW1_HW2_WT2 <- intersect(HW1_HW2, resfdr5_WT2_LPS$IDGeneInfo)
+HW1_WT1_WT2 <- intersect(WT1_WT2, resfdr5_HW1_LPS$IDGeneInfo)
+HW2_WT1_WT2 <- intersect(WT1_WT2, resfdr5_HW2_LPS$IDGeneInfo)
+##Quadruple
+HW12_WT12 <- intersect(HW1_HW2, WT1_WT2)
+HW12_WT12
+```
+```{r}
+setdiff(HW1_WT2, HW12_WT12)
+```
+```{r}
+setdiff(WT1_WT2, HW12_WT12)
+```
+```{r}
+setdiff(resfdr5_WT2_LPS$IDGeneInfo, sumDEGsHW)
+```
+```{r}
+pdf("./outputs/DESeq-results/figures/LPS_colony_Venn2_FDR5.pdf", height = 3, width = 3)
+vp = viewport(height = unit(2, "in"),  width = unit(2, "in"))
+grid.newpage()
+grid.rect(vp = vp, gp = gpar(col = "white"))
+
+#HW1, WT2, HW2, WT1
+LPS_venn <- draw.quad.venn(area1 = length(resfdr5_HW1_LPS$IDGeneInfo),
+               area2 = length(resfdr5_WT2_LPS$IDGeneInfo),
+               area3 = length(resfdr5_HW2_LPS$IDGeneInfo),
+               area4 = length(resfdr5_WT1_LPS$IDGeneInfo),
+               n12 = length(HW1_WT2),
+               n13 = length(HW1_HW2),
+               n14 = length(HW1_WT1),
+               n23 = length(HW2_WT2),
+               n24 = length(WT1_WT2),
+               n34 = length(HW2_WT1),
+               n123 = length(HW1_HW2_WT2),
+               n124 = length(HW1_WT1_WT2),
+               n134 = length(HW1_HW2_WT1),
+               n234 = length(HW2_WT1_WT2),
+               n1234 = length(HW12_WT12),
+               category = c("HW1", "WT2", "HW2", "WT1"),
+               fill = c("olivedrab3", "skyblue", "springgreen", "deepskyblue"),
+               lwd = rep(1,4),
+               cat.cex = rep(1.4, 4),
+               cat.fontfamily = rep("Arial", 4),
+               cat.fontface = rep("plain", 4),
+               alpha = c(0.3,0.3,0.3,0.3),
+               cex = c(rep(1.4,5), 3, rep(1.4, 9)),
+               fontface = c(rep("plain", 5), "bold", rep("plain", 9)),
+               fontfamily = c(rep("Arial", 15)),
+               label.col = c(rep("black", 5), "red", rep("black", 9)),
+               print.mode = "raw",
+               sigdigs = 2,
+               scaled = TRUE
+)
+grid.draw(LPS_venn)
+```
+
+## Colony-specific up Venn
+```{r}
+sumDEGsHW <- union(resfdr5_HW1_LPS_up$IDGeneInfo, resfdr5_HW2_LPS_up$IDGeneInfo)
+sumDEGsWT <- union(resfdr5_WT1_LPS_up$IDGeneInfo, resfdr5_WT2_LPS_up$IDGeneInfo)
+sumDEGs <- union(sumDEGsHW, sumDEGsWT)
+length(sumDEGsWT)
+
+##Pairwise
+HW1_HW2 <- intersect(resfdr5_HW1_LPS_up$IDGeneInfo, resfdr5_HW2_LPS_up$IDGeneInfo)
+HW1_WT1 <- intersect(resfdr5_HW1_LPS_up$IDGeneInfo, resfdr5_WT1_LPS_up$IDGeneInfo)
+HW1_WT2 <- intersect(resfdr5_HW1_LPS_up$IDGeneInfo, resfdr5_WT2_LPS_up$IDGeneInfo)
+HW2_WT1 <- intersect(resfdr5_HW2_LPS_up$IDGeneInfo, resfdr5_WT1_LPS_up$IDGeneInfo)
+HW2_WT2 <- intersect(resfdr5_HW2_LPS_up$IDGeneInfo, resfdr5_WT2_LPS_up$IDGeneInfo)
+WT1_WT2 <- intersect(resfdr5_WT1_LPS_up$IDGeneInfo, resfdr5_WT2_LPS_up$IDGeneInfo)
+##Triple
+HW1_HW2_WT1 <- intersect(HW1_HW2, resfdr5_WT1_LPS_up$IDGeneInfo)
+HW1_HW2_WT2 <- intersect(HW1_HW2, resfdr5_WT2_LPS_up$IDGeneInfo)
+HW1_WT1_WT2 <- intersect(WT1_WT2, resfdr5_HW1_LPS_up$IDGeneInfo)
+HW2_WT1_WT2 <- intersect(WT1_WT2, resfdr5_HW2_LPS_up$IDGeneInfo)
+##Quadruple
+HW12_WT12 <- intersect(HW1_HW2, WT1_WT2)
+```
+```{r}
+setdiff(HW1_WT2, HW12_WT12)
+```
+```{r}
+setdiff(WT1_WT2, HW12_WT12)
+```
+
+```{r}
+setdiff(resfdr5_WT2_LPS$IDGeneInfo, sumDEGsHW)
+```
+```{r}
+pdf("./outputs/DESeq-results/figures/LPS_colony_Venn_up_FDR5.pdf", height = 3, width = 3)
+vp = viewport(height = unit(2, "in"),  width = unit(2, "in"))
+grid.newpage()
+grid.rect(vp = vp, gp = gpar(col = "white"))
+
+#HW1, WT2, HW2, WT1
+LPS_venn <- draw.quad.venn(area1 = length(resfdr5_HW1_LPS_up$IDGeneInfo),
+               area2 = length(resfdr5_WT2_LPS_up$IDGeneInfo),
+               area3 = length(resfdr5_HW2_LPS_up$IDGeneInfo),
+               area4 = length(resfdr5_WT1_LPS_up$IDGeneInfo),
+               n12 = length(HW1_WT2),
+               n13 = length(HW1_HW2),
+               n14 = length(HW1_WT1),
+               n23 = length(HW2_WT2),
+               n24 = length(WT1_WT2),
+               n34 = length(HW2_WT1),
+               n123 = length(HW1_HW2_WT2),
+               n124 = length(HW1_WT1_WT2),
+               n134 = length(HW1_HW2_WT1),
+               n234 = length(HW2_WT1_WT2),
+               n1234 = length(HW12_WT12),
+               category = c("HW1", "WT2", "HW2", "WT1"),
+               fill = c("olivedrab3", "skyblue", "springgreen", "deepskyblue"),
+               lwd = rep(1,4),
+               cat.cex = rep(1.4, 4),
+               cat.fontfamily = rep("Arial", 4),
+               cat.fontface = rep("plain", 4),
+               alpha = c(0.3,0.3,0.3,0.3),
+               cex = c(rep(1.4,5), 2.2, rep(1.4, 9)),
+               fontface = c(rep("plain", 5), "bold", rep("plain", 9)),
+               fontfamily = c(rep("Arial", 15)),
+               label.col = c(rep("black", 5), "black", rep("black", 9)),
+               print.mode = "raw",
+               sigdigs = 2,
+               scaled = TRUE
+)
+grid.draw(LPS_venn)
+```
+
+## Colony-specific down Venn
+```{r}
+sumDEGsHW <- union(resfdr5_HW1_LPS_dn$IDGeneInfo, resfdr5_HW2_LPS_dn$IDGeneInfo)
+sumDEGsWT <- union(resfdr5_WT1_LPS_dn$IDGeneInfo, resfdr5_WT2_LPS_dn$IDGeneInfo)
+sumDEGs <- union(sumDEGsHW, sumDEGsWT)
+length(sumDEGsWT)
+
+##Pairwise
+HW1_HW2 <- intersect(resfdr5_HW1_LPS_dn$IDGeneInfo, resfdr5_HW2_LPS_dn$IDGeneInfo)
+HW1_WT1 <- intersect(resfdr5_HW1_LPS_dn$IDGeneInfo, resfdr5_WT1_LPS_dn$IDGeneInfo)
+HW1_WT2 <- intersect(resfdr5_HW1_LPS_dn$IDGeneInfo, resfdr5_WT2_LPS_dn$IDGeneInfo)
+HW2_WT1 <- intersect(resfdr5_HW2_LPS_dn$IDGeneInfo, resfdr5_WT1_LPS_dn$IDGeneInfo)
+HW2_WT2 <- intersect(resfdr5_HW2_LPS_dn$IDGeneInfo, resfdr5_WT2_LPS_dn$IDGeneInfo)
+WT1_WT2 <- intersect(resfdr5_WT1_LPS_dn$IDGeneInfo, resfdr5_WT2_LPS_dn$IDGeneInfo)
+##Triple
+HW1_HW2_WT1 <- intersect(HW1_HW2, resfdr5_WT1_LPS_dn$IDGeneInfo)
+HW1_HW2_WT2 <- intersect(HW1_HW2, resfdr5_WT2_LPS_dn$IDGeneInfo)
+HW1_WT1_WT2 <- intersect(WT1_WT2, resfdr5_HW1_LPS_dn$IDGeneInfo)
+HW2_WT1_WT2 <- intersect(WT1_WT2, resfdr5_HW2_LPS_dn$IDGeneInfo)
+##Quadruple
+HW12_WT12 <- intersect(HW1_HW2, WT1_WT2)
+```
+```{r}
+setdiff(HW1_WT2, HW12_WT12)
+```
+```{r}
+setdiff(WT1_WT2, HW12_WT12)
+```
+
+```{r}
+setdiff(resfdr5_WT2_LPS$IDGeneInfo, sumDEGsHW)
+```
+```{r}
+pdf("./outputs/DESeq-results/figures/LPS_colony_Venn_dn_FDR5.pdf", height = 3, width = 3)
+vp = viewport(height = unit(2, "in"),  width = unit(2, "in"))
+grid.newpage()
+grid.rect(vp = vp, gp = gpar(col = "white"))
+
+#HW1, WT2, HW2, WT1
+LPS_venn <- draw.quad.venn(area1 = length(resfdr5_HW1_LPS_dn$IDGeneInfo),
+               area2 = length(resfdr5_WT2_LPS_dn$IDGeneInfo),
+               area3 = length(resfdr5_HW2_LPS_dn$IDGeneInfo),
+               area4 = length(resfdr5_WT1_LPS_dn$IDGeneInfo),
+               n12 = length(HW1_WT2),
+               n13 = length(HW1_HW2),
+               n14 = length(HW1_WT1),
+               n23 = length(HW2_WT2),
+               n24 = length(WT1_WT2),
+               n34 = length(HW2_WT1),
+               n123 = length(HW1_HW2_WT2),
+               n124 = length(HW1_WT1_WT2),
+               n134 = length(HW1_HW2_WT1),
+               n234 = length(HW2_WT1_WT2),
+               n1234 = length(HW12_WT12),
+               category = c("HW1", "WT2", "HW2", "WT1"),
+               fill = c("olivedrab3", "skyblue", "springgreen", "deepskyblue"),
+               lwd = rep(1,4),
+               cat.cex = rep(1.4, 4),
+               cat.fontfamily = rep("Arial", 4),
+               cat.fontface = rep("plain", 4),
+               alpha = c(0.3,0.3,0.3,0.3),
+               cex = c(rep(1.4,5), 2.2, rep(1.4, 9)),
+               fontface = c(rep("plain", 5), "bold", rep("plain", 9)),
+               fontfamily = c(rep("Arial", 15)),
+               label.col = c(rep("black", 5), "black", rep("black", 9)),
+               print.mode = "raw",
+               sigdigs = 2,
+               scaled = TRUE
+)
+grid.draw(LPS_venn)
+```
+
+## Overall and Colony-specific DEG Venn
+```{r}
+overall <- union(sumDEGs, resfdr5_LPS_ctrl$IDGeneInfo)
+length(overall)
+overallgenotypes <- intersect(sumDEGs, resfdr5_LPS_ctrl$IDGeneInfo)
+length(overallgenotypes)
+```
+```{r}
+HW1_unique <- setdiff(rownames(resfdr5_HW1_LPS), rownames(resfdr5_LPS_ctrl))
+setdiff(resfdr5_HW1_LPS$IDGeneInfo, resfdr5_LPS_ctrl$IDGeneInfo)
+```
+```{r}
+HW2_unique <- setdiff(rownames(resfdr5_HW2_LPS), rownames(resfdr5_LPS_ctrl))
+setdiff(resfdr5_HW2_LPS$IDGeneInfo, resfdr5_LPS_ctrl$IDGeneInfo)
+```
+```{r}
+WT1_unique <- setdiff(rownames(resfdr5_WT1_LPS), rownames(resfdr5_LPS_ctrl))
+setdiff(resfdr5_WT1_LPS$IDGeneInfo, resfdr5_LPS_ctrl$IDGeneInfo)
+```
+```{r}
+WT2_unique <- setdiff(rownames(resfdr5_WT2_LPS), rownames(resfdr5_LPS_ctrl))
+setdiff(resfdr5_WT2_LPS$IDGeneInfo, resfdr5_LPS_ctrl$IDGeneInfo)
+```
+
+# Differences between 1% and 5% FDR Thresholds
+```{r}
+print("This is where the work begins")
+```
+```{r}
+fdrdiff <- setdiff(rownames(resfdr5_LPS_ctrl), rownames(resfdr1_LPS_ctrl))
+```
+```{r}
+##These need to be differences between the fdr thresholds
+
+#sumDEGsHW <- union(resfdr5_HW1_LPS_dn$IDGeneInfo, resfdr5_HW2_LPS_dn$IDGeneInfo)
+#sumDEGsWT <- union(resfdr5_WT1_LPS_dn$IDGeneInfo, resfdr5_WT2_LPS_dn$IDGeneInfo)
+#sumDEGs <- union(sumDEGsHW, sumDEGsWT)
+#length(sumDEGsWT)
+
+##Pairwise
+HW1_HW2_diff <- setdiff((intersect(resfdr5_HW1_LPS$IDGeneInfo, resfdr5_HW2_LPS$IDGeneInfo)), (intersect(resfdr1_HW1_LPS$IDGeneInfo, resfdr1_HW2_LPS$IDGeneInfo)))
+#length(HW1_HW2_diff)
+
+HW1_WT1_diff <- setdiff((intersect(resfdr5_HW1_LPS$IDGeneInfo, resfdr5_WT1_LPS$IDGeneInfo)), (intersect(resfdr1_HW1_LPS$IDGeneInfo, resfdr1_WT1_LPS_dn$IDGeneInfo)))
+
+HW1_WT2_diff <- setdiff((intersect(resfdr5_HW1_LPS$IDGeneInfo, resfdr5_WT2_LPS$IDGeneInfo)), (intersect(resfdr1_HW1_LPS$IDGeneInfo, resfdr1_WT2_LPS_dn$IDGeneInfo)))
+
+HW2_WT1_diff <- setdiff((intersect(resfdr5_HW2_LPS$IDGeneInfo, resfdr5_WT1_LPS$IDGeneInfo)), (intersect(resfdr1_HW2_LPS$IDGeneInfo, resfdr1_WT1_LPS_dn$IDGeneInfo)))
+
+HW2_WT2_diff <- setdiff((intersect(resfdr5_HW2_LPS$IDGeneInfo, resfdr5_WT2_LPS$IDGeneInfo)), (intersect(resfdr1_HW2_LPS$IDGeneInfo, resfdr1_WT2_LPS_dn$IDGeneInfo)))
+
+WT1_WT2_diff <- setdiff((intersect(resfdr5_WT1_LPS$IDGeneInfo, resfdr5_WT2_LPS$IDGeneInfo)), (intersect(resfdr1_WT1_LPS$IDGeneInfo, resfdr1_WT2_LPS_dn$IDGeneInfo)))
+
+
+##Triple
+HW1_HW2_WT1_diff <- setdiff((intersect(intersect(resfdr5_HW1_LPS$IDGeneInfo, resfdr5_HW2_LPS$IDGeneInfo), resfdr5_WT1_LPS$IDGeneInfo)), (intersect(intersect(resfdr1_HW1_LPS$IDGeneInfo, resfdr1_HW2_LPS$IDGeneInfo), resfdr1_WT1_LPS$IDGeneInfo)))
+
+HW1_HW2_WT2_diff <- setdiff((intersect(intersect(resfdr5_HW1_LPS$IDGeneInfo, resfdr5_HW2_LPS$IDGeneInfo), resfdr5_WT2_LPS$IDGeneInfo)), (intersect(intersect(resfdr1_HW1_LPS$IDGeneInfo, resfdr1_HW2_LPS$IDGeneInfo), resfdr1_WT2_LPS$IDGeneInfo)))
+
+HW1_WT1_WT2_diff <- setdiff((intersect(intersect(resfdr5_WT1_LPS$IDGeneInfo, resfdr5_WT2_LPS$IDGeneInfo), resfdr5_HW1_LPS$IDGeneInfo)), (intersect(intersect(resfdr1_WT1_LPS$IDGeneInfo, resfdr1_WT2_LPS$IDGeneInfo), resfdr1_HW1_LPS$IDGeneInfo)))
+
+HW2_WT1_WT2_diff <- setdiff((intersect(intersect(resfdr5_WT1_LPS$IDGeneInfo, resfdr5_WT2_LPS$IDGeneInfo), resfdr5_HW2_LPS$IDGeneInfo)), (intersect(intersect(resfdr1_WT1_LPS$IDGeneInfo, resfdr1_WT2_LPS$IDGeneInfo), resfdr1_HW2_LPS$IDGeneInfo)))
+
+##Quadruple
+HW12_WT12_diff <- setdiff((intersect(intersect(resfdr5_HW1_LPS$IDGeneInfo, resfdr5_HW2_LPS$IDGeneInfo), intersect(resfdr5_WT1_LPS$IDGeneInfo, resfdr5_WT2_LPS$IDGeneInfo))), (intersect(intersect(resfdr1_HW1_LPS$IDGeneInfo, resfdr1_HW2_LPS$IDGeneInfo), intersect(resfdr1_WT1_LPS$IDGeneInfo, resfdr1_WT2_LPS$IDGeneInfo))))
+```
+
+```{r}
+pdf("./outputs/DESeq-results/figures/LPS_colony_Venn_FDRdiff.pdf", height = 3, width = 3)
+vp = viewport(height = unit(2, "in"),  width = unit(2, "in"))
+grid.newpage()
+grid.rect(vp = vp, gp = gpar(col = "white"))
+
+#HW1, WT2, HW2, WT1
+LPS_fdrdiff_venn <- draw.quad.venn(area1 = length(setdiff(resfdr5_HW1_LPS$IDGeneInfo, resfdr1_HW1_LPS$IDGeneInfo)),
+               area2 = length(setdiff(resfdr5_HW2_LPS$IDGeneInfo, resfdr1_HW2_LPS$IDGeneInfo)),
+               area3 = length(setdiff(resfdr5_WT1_LPS$IDGeneInfo, resfdr1_WT1_LPS$IDGeneInfo)),
+               area4 = length(setdiff(resfdr5_WT2_LPS$IDGeneInfo, resfdr1_WT2_LPS$IDGeneInfo)),
+               n12 = length(HW1_WT2_diff),
+               n13 = length(HW1_HW2_diff),
+               n14 = length(HW1_WT1_diff),
+               n23 = length(HW2_WT2_diff),
+               n24 = length(WT1_WT2_diff),
+               n34 = length(HW2_WT1_diff),
+               n123 = length(HW1_HW2_WT2_diff),
+               n124 = length(HW1_WT1_WT2_diff),
+               n134 = length(HW1_HW2_WT1_diff),
+               n234 = length(HW2_WT1_WT2_diff),
+               n1234 = length(HW12_WT12_diff),
+               category = c("HW1", "WT2", "HW2", "WT1"),
+               fill = c("olivedrab3", "skyblue", "springgreen", "deepskyblue"),
+               lwd = rep(1,4),
+               cat.cex = rep(1.4, 4),
+               cat.fontfamily = rep("Arial", 4),
+               cat.fontface = rep("plain", 4),
+               alpha = c(0.3,0.3,0.3,0.3),
+               cex = c(rep(1.4,5), 2.2, rep(1.4, 9)),
+               fontface = c(rep("plain", 5), "bold", rep("plain", 9)),
+               fontfamily = c(rep("Arial", 15)),
+               label.col = c(rep("black", 5), "black", rep("black", 9)),
+               print.mode = "raw",
+               sigdigs = 2,
+               scaled = TRUE
+)
+grid.draw(LPS_fdrdiff_venn)
+```
+
+```{r}
+length(setdiff(resfdr5_HW1_LPS$IDGeneInfo, resfdr1_HW1_LPS$IDGeneInfo))
+length(setdiff(resfdr5_HW2_LPS$IDGeneInfo, resfdr1_HW2_LPS$IDGeneInfo))
+length(setdiff(resfdr5_WT1_LPS$IDGeneInfo, resfdr1_WT1_LPS$IDGeneInfo))
+length(setdiff(resfdr5_WT2_LPS$IDGeneInfo, resfdr1_WT2_LPS$IDGeneInfo))
+```
+```{r}
+length(HW1_WT2_diff)
+length(HW1_HW2_diff)
+length(HW1_WT1_diff)
+length(HW2_WT2_diff)
+length(WT1_WT2_diff)
+length(HW2_WT1_diff)
+length(HW1_HW2_WT2_diff)
+length(HW1_WT1_WT2_diff)
+length(HW1_HW2_WT1_diff)
+length(HW2_WT1_WT2_diff)
+length(HW12_WT12_diff)
+```
+

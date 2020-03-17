@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI_LPS-master/")
+knitr::opts_knit$set(root.dir = "~/computing/projects/EAPSI_Pocillopora_LPS")
 ```
 ## Setup packages and working directories
 ```{r packages, error=FALSE, warning=FALSE, message=FALSE}
@@ -27,7 +27,7 @@ DEGlists_all <- list(LPS = ressig_LPS_ctrl$IDGeneInfo, HW1 = ressig_HW1_LPS$IDGe
 upset(fromList(DEGlists_geno))
 ```
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/UpSet_LPS.pdf", height = 4.25, width = 11)
+pdf(file = "./outputs/DESeq-results/figures/UpSet_LPS_FDR5.pdf", height = 4.25, width = 11)
 upset(fromList(DEGlists_geno),
       sets = c("WT2", "WT1", "HW2", "HW1"),
       keep.order = TRUE,
@@ -40,14 +40,14 @@ upset(fromList(DEGlists_geno),
       text.scale = 2,
       sets.bar.color = c(colcolors[4], colcolors[3], colcolors[2], colcolors[1]),
       main.bar.color = c(colcolors[1:4], rep("black", 10), "red"),
-      #shade.color = c("black", "grey"),
+      shade.color = c("black", "grey"),
       matrix.dot.alpha = 0.4,
       set_size.show = TRUE,
-      set_size.scale_max = 80,
-      mainbar.y.max = 80)
+      set_size.scale_max = 200,
+      mainbar.y.max = 200)
 ```
 ```{r}
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/UpSet_LPS_dec.pdf", height = 4.25, width = 11)
+pdf(file = "./outputs/DESeq-results/figures/UpSet_LPS_dec_FDR5.pdf", height = 4.25, width = 11)
 upset(fromList(DEGlists_geno),
       sets = c("WT2", "WT1", "HW2", "HW1"),
       keep.order = TRUE,
@@ -63,8 +63,8 @@ upset(fromList(DEGlists_geno),
       #shade.color = c("black", "grey"),
       matrix.dot.alpha = 0.4,
       set_size.show = TRUE,
-      set_size.scale_max = 80,
-      mainbar.y.max = 80)
+      set_size.scale_max = 200,
+      mainbar.y.max = 200)
 ```
 ```{r}
 upset(fromList(DEGlists_geno_up), 
