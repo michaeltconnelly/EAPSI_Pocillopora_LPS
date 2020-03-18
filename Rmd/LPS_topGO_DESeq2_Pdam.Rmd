@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI_HW-WT-master")
+knitr::opts_knit$set(root.dir = "~/computing/projects/EAPSI_Pocillopora_LPS")
 ```
 ## Setup packages and working directories
 ```{r packages, error=FALSE, warning=FALSE, message=FALSE}
@@ -19,7 +19,7 @@ library("Rgraphviz")
 ```
 ## Input required *P. damicornis* GO annotation data and construct Gene-to-GO object for custom annotation mapping
 ```{r, warning=FALSE}
-geneID_GO <- readMappings(file = "pdam_genome_genesGO.txt")
+geneID_GO <- readMappings(file = "./data/pdam_genome_genesGO.txt")
 str(head(geneID_GO))
 ```
 ## Construct GO-to-Gene object for GO term searches of interesting genes
@@ -45,7 +45,7 @@ LPS_Control (Up/Down)
 ## Perform Kolmogorov-Smirnov test to identify enriched gene ontology terms
 ## Analyse highly-significant GO terms and corresponding p-values, then produce a table of results
 ```{r}
-DElists <- list.files(path = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists", pattern = "_ID.txt", full.names = TRUE)
+DElists <- list.files(path = "./outputs/DESeq-results/lists", pattern = "_ID.txt", full.names = TRUE)
 ```
 ```{r}
 topGOanalyzeDE <- function(filename) {
@@ -119,9 +119,9 @@ for (DElist in DElists)
 }
 ```
 ```{bash}
-mv ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/lists/*.csv ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/topGO
-bash ~/computing/scripts/EAPSI_LPS-master/awk_REVIGO_LPS.sh
-mv ~/computing/scripts/EAPSI_LPS-master/DESEqresults_Pdam/topGO/*.txt ~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/REVIGO
+mv ./outputs/DESeq-results/lists/*.csv ./outputs/DESeq-results/topGO
+bash ./bash/awk_REVIGO_LPS.sh
+mv ./outputs/DESeq-results/topGO/*.txt ./outputs/DESeq-results/REVIGO
 ```
 ```{bash}
 sed -i -e 's/"//g' ~/computing/scripts/EAPSI_LPS-master/DESEqresults_Pdam/REVIGO/*.txt
