@@ -12,6 +12,8 @@ knitr::opts_knit$set(root.dir = "~/computing/projects/EAPSI_Pocillopora_LPS")
 ## Regularized-log transformations
 ```{r, include=FALSE}
       rld_LPS <- rlogTransformation(dds_LPS, blind = TRUE)
+      rld_LPS_int <- rlogTransformation(dds_LPS_int, blind = TRUE)
+      ###
       rld_HW1 <- rlogTransformation(dds_HW1, blind = TRUE)
       rld_HW2 <- rlogTransformation(dds_HW2, blind = TRUE)
       rld_WT1 <- rlogTransformation(dds_WT1, blind = TRUE)
@@ -129,6 +131,17 @@ ggPCA(rld_LPS, stable_samples_LPS, pclab = c(2,3))
 ggPCA(rld_LPS, stable_samples_LPS, pclab = c(2,4))
 ggPCA(rld_LPS, stable_samples_LPS, pclab = c(3,4))
 ```
+
+```{r}
+pdf(file = "./outputs/DEseq-results/figures/PCAs_int.pdf", height = 4, width = 4.25)
+ggPCA(rld_LPS_int, stable_samples_LPS, pclab = c(1,2))
+ggPCA(rld_LPS_int, stable_samples_LPS, pclab = c(1,3))
+ggPCA(rld_LPS_int, stable_samples_LPS, pclab = c(1,4))
+ggPCA(rld_LPS_int, stable_samples_LPS, pclab = c(2,3))
+ggPCA(rld_LPS_int, stable_samples_LPS, pclab = c(2,4))
+ggPCA(rld_LPS_int, stable_samples_LPS, pclab = c(3,4))
+```
+
 
 ```{r, echo=FALSE}
 ggPCA_geno <- function(rld, samples,  pclab = c(1,2)) {

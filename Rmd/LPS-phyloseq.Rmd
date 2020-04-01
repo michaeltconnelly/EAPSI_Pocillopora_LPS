@@ -1,50 +1,27 @@
 ---
-title: "all-phyloseq"
+title: "LPS-phyloseq"
 output: html
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI-bacteria/all_wd/")
+knitr::opts_knit$set(root.dir = "~/computing/projects/EAPSI_Pocillopora_LPS")
 ```
 ## Setup packages and working directories
-```{r, message=FALSE}
-library(tidyverse)
-library(ggplot2)
-library(phyloseq)
-library(vegan)
-library(ape)
-library(DESeq2)
-library(edgeR)
-library(microbiome)
-library(RColorBrewer)
-library(ggpubr)
-library(gplots)
-library(grid)
-library(plyr)
-library(data.table)
-library(DT)
-library(ranacapa)
-library(treemap)
+```{r packages, include=FALSE}
+packages <- c("tidyverse", "phyloseq", "vegan", "ape", "microbiome", "DESeq2", "edgeR", "pheatmap", "ggpubr", "ggrepel","RColorBrewer", "grid", "plyr", "data.table", "DT", "ranacapa")
+lapply(packages, library, character.only = TRUE)
 ```
 
 Set theme, colors and shapes for ggplot2 plotting
 ```{r, warning=FALSE, message=FALSE}
 theme_set(theme_bw())
 #Treatment color and fill scheme
-condcolors <- c("#0000FF", "#00CCCC", "#FF6600", "#FFCC33", "#CC0033", "#FF66FF")
 condcolors_LPS <- c("#0000FF", "#FF66FF")
-condcolors_anti <- c("#00CCCC", "#0000FF")
-condcolors_heat <- c("#0000FF", "#FF6600")
-condcolors_anti.heat <- c("#FFCC33", "#0000FF")
-condcolors_anti.heat.LPS <- c("#CC0033", "#0000FF")
-condcolors_ctrl.anti.heat <- c("#0000FF", "#00CCCC", "#FF6600")
-#
-condfillcolors <- c("#99FFFF", "#FFFF66", "#FF6666", "#99CCFF", "#FFCC99", "#FFCCFF")
 condfillcolors_LPS <- c("#99CCFF", "#FFCCFF")
 ###
 #Colony shape, color and fill scheme
-colshapes <- c(16, 17, 15, 18, 15, 12, 17, 2)
-colcolors <- c("olivedrab3", "springgreen", "deepskyblue", "skyblue", "#FFCCFF", "#FF99FF", "#CCCCFF", "#CC99FF")
+colshapes <- c(16, 17, 15, 18)
+colcolors <- c("olivedrab3", "springgreen", "deepskyblue", "skyblue")
 #Modify color vectors for grob editing on facetted plots
 colcolors_double <- c(rep(colcolors[1], 2), rep(colcolors[2], 2), rep(colcolors[3], 2), rep(colcolors[4], 2))
 condfillcolors_LPS_double <- c(rep(c(condfillcolors_LPS[1], condfillcolors_LPS[2]), 4))
@@ -54,13 +31,13 @@ condfillcolors_LPS_pair <- c(rep(condfillcolors_LPS[1], 4), rep(condfillcolors_L
 ```{r}
 ### Bacteria taxa
 ## Phyla
-phyla_colors <- read_csv("~/computing/scripts/EAPSI_LPS-master/taxa_colors/phyla_colors.csv", col_names = c("phylum", "color"))
-phyla_colors$color_hex <- col2hex(phyla_colors$color)
+#phyla_colors <- read_csv("~/computing/scripts/EAPSI_LPS-master/taxa_colors/phyla_colors.csv", col_names = c("phylum", "color"))
+#phyla_colors$color_hex <- col2hex(phyla_colors$color)
 ## Classes
-classes_colors <- read_csv("~/computing/scripts/EAPSI_LPS-master/taxa_colors/classes_colors.csv", col_names = c("phylum", "class", "color"))
-classes_colors$color_hex <- col2hex(classes_colors$color)
+#classes_colors <- read_csv("~/computing/scripts/EAPSI_LPS-master/taxa_colors/classes_colors.csv", col_names = c("phylum", "class", "color"))
+#classes_colors$color_hex <- col2hex(classes_colors$color)
 ## Orders
-orders_colors <- read_csv("~/computing/scripts/EAPSI_LPS-master/taxa_colors/orders_colors.csv", col_names = c("phylum", "class", "order", "color"))
+#orders_colors <- read_csv("~/computing/scripts/EAPSI_LPS-master/taxa_colors/orders_colors.csv", col_names = c("phylum", "class", "order", "color"))
 ## Families
 #families_colors <- read_csv("~/computing/scripts/EAPSI_LPS-master/taxa_colors/families_colors.csv", col_names = c("phylum", "class", "order", "family", "color"))
 ## Genera
@@ -72,30 +49,30 @@ orders_colors <- read_csv("~/computing/scripts/EAPSI_LPS-master/taxa_colors/orde
 ## Make phyloseq object
 Read in unrareified 99% OTU (ASV) table
 ```{r}
-ASV <- read.table("./export_silva/all_silva_feature-table.tsv", row.names = 1, header = TRUE)
+ASV <- read.table("./outputs/qiime2/export_silva/all_silva_feature-table.tsv", row.names = 1, header = TRUE)
 ASV <- t(ASV)
 ```
 Read in rareified 99% OTU (ASV) table
 ```{r}
-ASV2600 <- read.table("./export_silva/all_silva_rarefied_feature-table.tsv", row.names = 1, header = TRUE)
+ASV2600 <- read.table("./outputs/qiime2/export_silva/all_silva_rarefied_feature-table.tsv", row.names = 1, header = TRUE)
 ASV2600 <- t(ASV2600)
 ```
 Read in taxononomic classification information
 ```{r}
-taxonomy <- as.matrix(read.table("./export_silva/taxonomy4.txt", sep = "\t", row.names = 1, header = FALSE, fill = TRUE))
+taxonomy <- as.matrix(read.table("./outputs/qiime2/export_silva/taxonomy4.txt", sep = "\t", row.names = 1, header = FALSE, fill = TRUE))
 colnames(taxonomy) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
 taxonomy[taxonomy==""] <- NA
 taxdf <- as.data.frame(taxonomy)
 ```
 Read in phylogenetic tree, sample metadata and set factor orders
 ```{r}
-tree <- read_tree("./export_silva/tree.nwk")
-map <- read.table("./metadata/metadata_all.tsv", sep ="\t", row.names = 1, header = FALSE)
+tree <- read_tree("./outputs/qiime2/export_silva/tree.nwk")
+map <- read.table("./data/qiime2_metadata.tsv", sep ="\t", row.names = 1, header = FALSE)
 colnames(map) <- c ("Reef",	"Colony",	"Environment",	"Treatment")
 map$SampleID <- rownames(map)
-map$Reef <- factor(map$Reef, levels = c("Houwan", "Wanglitung", "Outlet", "Houbihu", "controls"), ordered = TRUE)
-map$Colony <- factor(map$Colony, levels = c("HW1", "HW2", "WT1", "WT2", "OT1", "OT2", "HB1", "HB2", "controls"), ordered = TRUE)
-map$Treatment <- factor(map$Treatment, levels = c("control", "Antibiotics", "Heat", "Antibiotics.Heat", "Antibiotics.Heat.LPS", "LPS", "positive", "negative"), ordered = TRUE)
+map$Reef <- factor(map$Reef, levels = c("Houwan", "Wanglitung", "controls"), ordered = TRUE)
+map$Colony <- factor(map$Colony, levels = c("HW1", "HW2", "WT1", "WT2", "controls"), ordered = TRUE)
+map$Treatment <- factor(map$Treatment, levels = c("control", "Heat", "Antibiotics", "Antibiotics.Heat", "positive", "negative"), ordered = TRUE)
 ```
 Create phyloseq objects
 ```{r}

@@ -22,8 +22,8 @@ library("calibrate")
 
 ### LPS vs. Control Differential Expression
 ```{r}
-##Highlight genes that have an absolute fold change > 2 and a padj < 0.01
-res_LPS$threshold <- ifelse(res_LPS$padj < 0.01 & res_LPS$log2FoldChange > 0, "Upregulated", ifelse(res_LPS$padj < 0.01 & res_LPS$log2FoldChange < 0, "Downregulated", "NA"))
+##Highlight genes that have a padj < 0.05
+res_LPS$threshold <- ifelse(res_LPS$padj < 0.05 & res_LPS$log2FoldChange > 0, "Upregulated", ifelse(res_LPS$padj < 0.05 & res_LPS$log2FoldChange < 0, "Downregulated", "NA"))
 res_LPS$log10padj <- -log10(res_LPS$padj)
 dat_genes_LPS_ctrl <- data.frame(cbind(res_LPS$log2FoldChange, res_LPS$log10padj, res_LPS$threshold), stringsAsFactors = FALSE)
 colnames(dat_genes_LPS_ctrl) <- c("log2FoldChange", "log10padj", "threshold")
@@ -37,10 +37,9 @@ dat_genes_LPS_ctrl$threshold <- factor(dat_genes_LPS_ctrl$threshold, levels = c(
 class(dat_genes_LPS_ctrl$log2FoldChange)
 class(res_LPS$log2FoldChange)
 ```
-
 ```{r, warning = FALSE}
 DEGcolors <- c("red", "blue", "dark grey")
-pdf(file = "./outputs/DESeq-results/figures/Volcano_LPS-ctrl.pdf", height = 3, width = 2.75)
+pdf(file = "./outputs/DESeq-results/figures/Volcano_LPS-ctrl_FDR5.pdf", height = 3, width = 2.75)
 gVolcano_LPS_ctrl <- ggplot(data=dat_genes_LPS_ctrl, aes(log2FoldChange, log10padj))
 gVolcano_LPS_ctrl + geom_point(aes(color = threshold), alpha=0.7, size=2) +
   scale_color_manual(values = DEGcolors) +
@@ -49,6 +48,42 @@ gVolcano_LPS_ctrl + geom_point(aes(color = threshold), alpha=0.7, size=2) +
   xlab("log2 fold change") +
   ylab("-log10 p-value") + 
   #geom_text_repel(data = dat_genes_LPS_ctrl[1:15, ], aes(label = rownames(dat_genes_LPS_ctrl[1:15, ])), color = "black", size = 2.5, box.padding = unit(0.35, "lines")) +
+  theme_bw() +
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 12, hjust = 0, vjust = 1),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 10)) +
+  ggtitle("LPS vs. Control Volcano Plot")
+```
+
+### LPS vs. Control Differential Expression - Interaction Model
+```{r}
+##Highlight genes that have a padj < 0.05
+res_LPS_int$threshold <- ifelse(res_LPS_int$padj < 0.05 & res_LPS_int$log2FoldChange > 0, "Upregulated", ifelse(res_LPS_int$padj < 0.05 & res_LPS_int$log2FoldChange < 0, "Downregulated", "NA"))
+res_LPS_int$log10padj <- -log10(res_LPS_int$padj)
+dat_genes_LPS_int_ctrl <- data.frame(cbind(res_LPS_int$log2FoldChange, res_LPS_int$log10padj, res_LPS_int$threshold), stringsAsFactors = FALSE)
+colnames(dat_genes_LPS_int_ctrl) <- c("log2FoldChange", "log10padj", "threshold")
+row.names(dat_genes_LPS_int_ctrl) <- res_LPS_int$IDGeneInfo
+#dat_genes_LPS_int_ctrl <- dat_genes_LPS_int_ctrl[order(dat_genes_LPS_int_ctrl$log2FoldChange, decreasing = TRUE),]
+dat_genes_LPS_int_ctrl$log2FoldChange <- as.numeric(dat_genes_LPS_int_ctrl$log2FoldChange)
+dat_genes_LPS_int_ctrl$log10padj <- as.numeric(dat_genes_LPS_int_ctrl$log10padj)
+dat_genes_LPS_int_ctrl$threshold <- factor(dat_genes_LPS_int_ctrl$threshold, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+```
+```{r}
+class(dat_genes_LPS_int_ctrl$log2FoldChange)
+class(res_LPS_int$log2FoldChange)
+```
+```{r, warning = FALSE}
+DEGcolors <- c("red", "blue", "dark grey")
+pdf(file = "./outputs/DESeq-results/figures/Volcano_LPS_int-ctrl_FDR5.pdf", height = 3, width = 2.75)
+gVolcano_LPS_int_ctrl <- ggplot(data=dat_genes_LPS_int_ctrl, aes(log2FoldChange, log10padj))
+gVolcano_LPS_int_ctrl + geom_point(aes(color = threshold), alpha=0.7, size=2) +
+  scale_color_manual(values = DEGcolors) +
+  scale_x_continuous(limits = c(-6,6), breaks = seq(-10,10,2)) + 
+  ylim(c(0, 5)) +
+  xlab("log2 fold change") +
+  ylab("-log10 p-value") + 
+  #geom_text_repel(data = dat_genes_LPS_int_ctrl[1:15, ], aes(label = rownames(dat_genes_LPS_int_ctrl[1:15, ])), color = "black", size = 2.5, box.padding = unit(0.35, "lines")) +
   theme_bw() +
   theme(legend.position = "none", 
         plot.title = element_text(size = 12, hjust = 0, vjust = 1),

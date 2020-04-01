@@ -45,10 +45,10 @@ print(ggplot(gplot, aes(x=Treatment, y=count, color=samples$Treatment))
 ```
 ```{r}
 ggboxplot_geno <- function(gene, res, samples) {
-titlegene <- grep(gene, res$IDGeneInfo)
-plotTitle <- res$IDGeneInfo[titlegene]
+titlegene <- grep(gene, res$ID)
+plotTitle <- res$GeneInfo[titlegene]
 gplot <- plotCounts(dds_LPS, gene = gene, intgroup = "Treatment", returnData = TRUE)
-print(ggplot(gplot, aes(x=Treatment, y=count, color=samples$Treatment)) 
+print(ggplot(gplot, aes(x=Treatment, y=(count+0.5), color=samples$Treatment)) 
       + geom_boxplot(aes(fill=samples$Treatment), show.legend = FALSE) 
       + geom_point(aes(shape = samples$Colony), size = 3, show.legend = FALSE) 
       + facet_grid(.~samples$Colony)
@@ -59,7 +59,7 @@ print(ggplot(gplot, aes(x=Treatment, y=count, color=samples$Treatment))
 }
 ```
 ```{r}
-ggboxplot_geno("pdam_0002776", res_LPS, stable_samples_LPS)
+ggboxplot_geno("pdam_00002773", res_LPS, stable_samples_LPS)
 ggboxplot("pdam_00023321", res_LPS, stable_samples_LPS)
 ggboxplot("pdam_00016279", res_LPS, stable_samples_LPS)
 ```

@@ -7,3 +7,4 @@
 .DS_Store
 outputs/*
 outputs/DESeq-results/.DS_Store
+data/classifiers/

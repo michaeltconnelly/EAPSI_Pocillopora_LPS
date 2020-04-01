@@ -18,14 +18,11 @@ library("DESeq2")
 library("ggpubr")
 library("apeglm")
 ```
-## Import sample data
+## Import sample metadata and counts data
 ```{r, echo=FALSE}
 stable_samples <- read.table("./data/EAPSIsamples_stable.txt", header = TRUE)
 #stable_samples$treatment <- as.factor(stable_samples$treatment)
 #stable_samples$genotype <- as.factor(stable_samples$genotype)
-```
-## Import counts data 
-```{r}
 countdata <- read.delim("./outputs/STARcounts_Pdam/LPS_Pdam.counts", row.names = 1, skip = 1) # comment.char="#",
 ```
 ## Tidy counts data
@@ -39,22 +36,24 @@ countdata <- countdata[ ,6:ncol(countdata)]
   colnames(countdata) <- gsub("X.", "", colnames(countdata))
   colnames(countdata) <- gsub("scratch.projects.transcriptomics.mikeconnelly.projects.EAPSI_Pocillopora_LPS.outputs.STARalign_Pdam.", "", colnames(countdata))
   colnames(countdata) <- gsub("_PdamAligned.out.bam$", "", colnames(countdata))
+# Sort countdata by P. damicornis gene ID
+countdata.sorted <- as.data.frame(countdata[order(rownames(countdata)),])
 ```
-## Import gene feature annotation information
+## Import gene feature annotation information: ID, Info, KO terms, Pfam domains...
 ```{r}
-genefeatures <- read.delim(file = "./data/pdam_genome_IDInfo.gff", header = F)
-colnames(genefeatures) <- c("IDGeneInfo")
-rownames(genefeatures) <- rownames(countdata)
+genefeatures <-  read.delim(file = "./data/pdam_genome_excel_annotations.tsv", header = F)
+colnames(genefeatures) <- c("ID", "GeneInfo", "KO_terms", "Pfam_domains")
+rownames(genefeatures) <- genefeatures$ID
 ```
 ## Check gene feature annotation and countdata rowname order coherence
 ```{r}
-all(rownames(countdata) == rownames(genefeatures))
+all(rownames(countdata.sorted) == genefeatures$ID)
+all(rownames(countdata.sorted) ==  rownames(genefeatures))
 ```
 ## Select which treatments to use in DESeq object construction, subset colonies
 LPS: Control-LPS
-
 ```{r}
-countdata_LPS <- dplyr::select(countdata, matches("[HW][wt][12].[36]."))
+countdata_LPS <- dplyr::select(countdata.sorted, matches("[HW][wt][12].[36]."))
 ```
 ```{r}
 countdata_HW1 <- dplyr::select(countdata_LPS, matches("Hw1.*"))
@@ -84,19 +83,19 @@ stable_samples_WT2 <- filter(stable_samples_LPS, Colony == "WT2")# %>% select(-c
       countdata_WT2 <- as.matrix(countdata_WT2)
 ```
 ## Create DESeq data objects
+### DESeq2 treatment model objects
 ```{r, message=FALSE}
       dds_LPS <- DESeqDataSetFromMatrix(countData=countdata_LPS, colData=stable_samples_LPS, design= ~Batch + Colony + Treatment)
       dds_LPS$Treatment <- factor(dds_LPS$Treatment, levels=c("control", "LPS"))
 relevel(dds_LPS$Treatment, ref = "control")
 ```
-
 ### Interaction DESeq model
 ```{r, message=FALSE}
-      dds_LPS_int <- DESeqDataSetFromMatrix(countData=countdata_LPS, colData=stable_samples_LPS, design= ~Batch + Colony + Treatment + Colony*Treatment)
+      dds_LPS_int <- DESeqDataSetFromMatrix(countData=countdata_LPS, colData=stable_samples_LPS, design= ~Batch + Colony + Treatment + Colony:Treatment)
       dds_LPS_int$Treatment <- factor(dds_LPS$Treatment, levels=c("control", "LPS"))
 relevel(dds_LPS$Treatment, ref = "control")
 ```
-
+### DESeq2 genotype model objects
 ```{r, message=FALSE}
       dds_HW1 <- DESeqDataSetFromMatrix(countData=countdata_HW1, colData=stable_samples_HW1, design= ~Batch + Treatment)
       dds_HW1$Treatment <- factor(dds_HW1$Treatment, levels=c("control", "LPS"))
@@ -127,7 +126,6 @@ all(rownames(dds_LPS) == rownames(genefeatures))
 ```{r}
 mcols(dds_LPS) <- cbind(mcols(dds_LPS), genefeatures)
 mcols(dds_LPS_int) <- cbind(mcols(dds_LPS_int), genefeatures)
-names(mcols(dds_LPS))
 ```
 ```{r}
 mcols(dds_HW1) <- cbind(mcols(dds_HW1), genefeatures)
@@ -161,59 +159,166 @@ mcols(dds_WT2) <- cbind(mcols(dds_WT2), genefeatures)
       dds_WT2 <- dds_WT2[keep,]
 ```
 
-## Obtain DESeq results
-```{r}
-      res_LPS <- results(dds_LPS)
-      res_LPS_int <- results(dds_LPS_int)
-```
-```{r}
-      res_HW1 <- results(dds_HW1)
-      res_HW2 <- results(dds_HW2)
-      res_WT1 <- results(dds_WT1)
-      res_WT2 <- results(dds_WT2)
-```
-
-## Check output of LPS DESeq2 analysis to ensure quality
+## Check output of Treatment model
+### Ensure quality of LPS DESeq2 analysis
 ```{r}
 resultsNames(dds_LPS)
-resultsNames(dds_LPS_int)
+#mcols(dds_LPS)
 ```
 ```{r}
-summary(res_LPS)
-summary(res_LPS_int)
-```
-```{r}
-mcols(dds_LPS)
-mcols(dds_LPS_int)
-```
-```{r}
-rownames(dds_LPS)
-```
-```{r}
-res_LPS$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
-res_LPS$IDGeneInfo <- as.character(res_LPS$IDGeneInfo)
-```
-```{r}
-colnames(res_LPS)
-```
-```{r}
-pdf(file="./outputs/DESeq-results/figures/DEseq2_DispEsts+MA.pdf", width = 11, height = 8.5)
+#pdf(file="./outputs/DESeq-results/figures/DEseq2_DispEsts+MA.pdf", width = 11, height = 8.5)
 plotDispEsts(dds_LPS)
 plotMA(res_LPS, ylim = c(-10, 10))
 ```
-
+### Obtain DESeq results 
 ```{r}
-res_LPS_normal <- lfcShrink(dds_LPS, coef = "Treatment_LPS_vs_control", type = "normal")
-res_LPS_normal$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
-res_LPS_normal$IDGeneInfo <- as.character(res_LPS_normal$IDGeneInfo)
-res_LPS_apeglm <- lfcShrink(dds_LPS, coef = "Treatment_LPS_vs_control", type = "apeglm")
-res_LPS_apeglm$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
-res_LPS_apeglm$IDGeneInfo <- as.character(res_LPS_apeglm$IDGeneInfo)
+res_LPS <- results(dds_LPS, alpha = 0.01)
+summary(res_LPS)
+res_LPS
+```
+### Incorporate gene annotation information into DESeq2 results
+```{r}
+res_LPS$ID <- mcols(dds_LPS)$ID
+res_LPS$GeneInfo <- mcols(dds_LPS)$GeneInfo
+res_LPS$KO_terms <- mcols(dds_LPS)$KO_terms
+res_LPS$Pfam_domains <- mcols(dds_LPS)$Pfam_domains
+res_LPS$ID <- as.character(res_LPS$ID)
+res_LPS$GeneInfo <- as.character(res_LPS$GeneInfo)
+res_LPS$KO_terms <- as.character(res_LPS$KO_terms)
+res_LPS$Pfam_domains <- as.character(res_LPS$Pfam_domains)
+###
+colnames(res_LPS)
+mcols(res_LPS)$description
+###
+write.csv(as.data.frame(res_LPS[order(res_LPS$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/res_LPS.csv")
 ```
 
+## Check output of Treatment:genotype interaction model
+### Ensure quality of LPS DESeq2 analysis
 ```{r}
-pdf(file="./outputs/DESeq-results/figures/DEseq2_MA_ggpubr.pdf", width = 4.25, height = 2.95)
-ggmalps <- ggmaplot(data = res_LPS_apeglm, fdr = 0.01, fc = 0.0, size = 2, palette = c("red", "blue", "dark grey"),
+resultsNames(dds_LPS_int)
+#mcols(dds_LPS_int)
+```
+### Obtain DESeq results
+```{r}
+res_LPS_int <- results(dds_LPS, alpha = 0.01, name = "Treatment_LPS_vs_control")
+summary(res_LPS_int)
+#res_LPS_int
+```
+```{r}
+#pdf(file="./outputs/DESeq-results/figures/DEseq2_DispEsts+MA.pdf", width = 11, height = 8.5)
+plotDispEsts(dds_LPS_int)
+plotMA(res_LPS_int, ylim = c(-10, 10))
+```
+```{r}
+res_intercept <- results(dds_LPS_int, alpha = 0.05, name = "Intercept")
+summary(res_intercept)
+res_batch <- results(dds_LPS_int, alpha = 0.05, name = "Batch_B_vs_A")
+summary(res_batch)
+```
+```{r}
+res_int_HW2 <- results(dds_LPS_int, alpha = 0.05, name = "Colony_HW2_vs_HW1")
+summary(res_int_HW2)
+res_int_WT1 <- results(dds_LPS_int, alpha = 0.05, name = "Colony_WT1_vs_HW1")
+summary(res_int_WT1)
+res_int_WT2 <- results(dds_LPS_int, alpha = 0.05, name = "Colony_WT2_vs_HW1")
+summary(res_int_WT2)
+```
+```{r}
+# the interaction term, answering: is the condition effect *different* across genotypes?
+res_LPS_int_HW2 <- results(dds_LPS_int, alpha = 0.05, name="ColonyHW2.TreatmentLPS")
+summary(res_LPS_int_HW2)
+res_LPS_int_WT1 <- results(dds_LPS_int, alpha = 0.05, name="ColonyWT1.TreatmentLPS")
+summary(res_LPS_int_WT1)
+res_LPS_int_WT2 <- results(dds_LPS_int, alpha = 0.05, name="ColonyWT2.TreatmentLPS")
+summary(res_LPS_int_WT2)
+```
+### Incorporate gene annotation information into DESeq2 results
+```{r}
+res_LPS_int$ID <- mcols(dds_LPS_int)$ID
+res_LPS_int$GeneInfo <- mcols(dds_LPS_int)$GeneInfo
+res_LPS_int$KO_terms <- mcols(dds_LPS_int)$KO_terms
+res_LPS_int$Pfam_domains <- mcols(dds_LPS_int)$Pfam_domains
+res_LPS_int$ID <- as.character(res_LPS_int$ID)
+res_LPS_int$GeneInfo <- as.character(res_LPS_int$GeneInfo)
+res_LPS_int$KO_terms <- as.character(res_LPS_int$KO_terms)
+res_LPS_int$Pfam_domains <- as.character(res_LPS_int$Pfam_domains)
+###
+colnames(res_LPS_int)
+mcols(res_LPS_int)$description
+###
+write.csv(as.data.frame(res_LPS_int[order(res_LPS_int$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/interaction/res_LPS_int.csv")
+```
+```{r}
+res_LPS_int_HW2$ID <- mcols(dds_LPS_int)$ID
+res_LPS_int_HW2$GeneInfo <- mcols(dds_LPS_int)$GeneInfo
+res_LPS_int_HW2$KO_terms <- mcols(dds_LPS_int)$KO_terms
+res_LPS_int_HW2$Pfam_domains <- mcols(dds_LPS_int)$Pfam_domains
+res_LPS_int_HW2$ID <- as.character(res_LPS_int_HW2$ID)
+res_LPS_int_HW2$GeneInfo <- as.character(res_LPS_int_HW2$GeneInfo)
+res_LPS_int_HW2$KO_terms <- as.character(res_LPS_int_HW2$KO_terms)
+res_LPS_int_HW2$Pfam_domains <- as.character(res_LPS_int_HW2$Pfam_domains)
+###
+colnames(res_LPS_int_HW2)
+mcols(res_LPS_int_HW2)$description
+###
+write.csv(as.data.frame(res_LPS_int_HW2[order(res_LPS_int_HW2$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/interaction/res_LPS_int_HW2.csv")
+```
+```{r}
+res_LPS_int_WT1$ID <- mcols(dds_LPS_int)$ID
+res_LPS_int_WT1$GeneInfo <- mcols(dds_LPS_int)$GeneInfo
+res_LPS_int_WT1$KO_terms <- mcols(dds_LPS_int)$KO_terms
+res_LPS_int_WT1$Pfam_domains <- mcols(dds_LPS_int)$Pfam_domains
+res_LPS_int_WT1$ID <- as.character(res_LPS_int_WT1$ID)
+res_LPS_int_WT1$GeneInfo <- as.character(res_LPS_int_WT1$GeneInfo)
+res_LPS_int_WT1$KO_terms <- as.character(res_LPS_int_WT1$KO_terms)
+res_LPS_int_WT1$Pfam_domains <- as.character(res_LPS_int_WT1$Pfam_domains)
+###
+colnames(res_LPS_int_WT1)
+mcols(res_LPS_int_WT1)$description
+###
+write.csv(as.data.frame(res_LPS_int_WT1[order(res_LPS_int_WT1$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/interaction/res_LPS_int_WT1.csv")
+```
+```{r}
+res_LPS_int_WT2$ID <- mcols(dds_LPS_int)$ID
+res_LPS_int_WT2$GeneInfo <- mcols(dds_LPS_int)$GeneInfo
+res_LPS_int_WT2$KO_terms <- mcols(dds_LPS_int)$KO_terms
+res_LPS_int_WT2$Pfam_domains <- mcols(dds_LPS_int)$Pfam_domains
+res_LPS_int_WT2$ID <- as.character(res_LPS_int_WT2$ID)
+res_LPS_int_WT2$GeneInfo <- as.character(res_LPS_int_WT2$GeneInfo)
+res_LPS_int_WT2$KO_terms <- as.character(res_LPS_int_WT2$KO_terms)
+res_LPS_int_WT2$Pfam_domains <- as.character(res_LPS_int_WT2$Pfam_domains)
+###
+colnames(res_LPS_int_WT2)
+mcols(res_LPS_int_WT2)$description
+###
+write.csv(as.data.frame(res_LPS_int_WT2[order(res_LPS_int_WT2$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/interaction/res_LPS_int_WT2.csv")
+```
+### Apply DESeq2 apeglm log2 fold-change shrinkage estimator
+```{r}
+res_LPS_apeglm <- lfcShrink(dds_LPS, coef = "Treatment_LPS_vs_control", type = "apeglm")
+```
+```{r}
+res_LPS_int_apeglm <- lfcShrink(dds_LPS_int, coef = "Treatment_LPS_vs_control", type = "apeglm")
+```
+```{r}
+res_LPS_int_apeglm$ID <- mcols(dds_LPS_int)$ID
+res_LPS_int_apeglm$GeneInfo <- mcols(dds_LPS_int)$GeneInfo
+res_LPS_int_apeglm$KO_terms <- mcols(dds_LPS_int)$KO_terms
+res_LPS_int_apeglm$Pfam_domains <- mcols(dds_LPS_int)$Pfam_domains
+res_LPS_int_apeglm$ID <- as.character(res_LPS_int_apeglm$ID)
+res_LPS_int_apeglm$GeneInfo <- as.character(res_LPS_int_apeglm$GeneInfo)
+res_LPS_int_apeglm$KO_terms <- as.character(res_LPS_int_apeglm$KO_terms)
+res_LPS_int_apeglm$Pfam_domains <- as.character(res_LPS_int_apeglm$Pfam_domains)
+###
+summary(res_LPS_int_apeglm)###
+colnames(res_LPS_int_apeglm)
+mcols(res_LPS_int_apeglm)$description
+write.csv(as.data.frame(res_LPS_int_apeglm[order(res_LPS_int_apeglm$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/all/res_LPS_int_apeglm.csv")
+```
+```{r}
+#pdf(file="./outputs/DESeq-results/figures/DEseq2_MA_ggpubr.pdf", width = 4.25, height = 2.95)
+ggmalps <- ggmaplot(data = res_LPS_int_apeglm, fdr = 0.01, fc = 0.0, size = 2, palette = c("red", "blue", "dark grey"),
          top = 0,
          main = ("Differential Gene Expression MA Plot"),
          ylab = "log2 fold change", xlab = "log2 mean expression", legend = "none",
@@ -223,13 +328,19 @@ ggmalps + ylim(-3,3) + xlim(0, 20)
   theme(legend.text = element_text(size = 18))
 ```
 
+## Check output of Genotype-specific models
 
-## Check output of colony DESeq2 analyses to ensure quality
 ```{r}
 resultsNames(dds_HW1)
 resultsNames(dds_HW2)
 resultsNames(dds_WT1)
 resultsNames(dds_WT2)
+```
+```{r}
+      res_HW1 <- results(dds_HW1)
+      res_HW2 <- results(dds_HW2)
+      res_WT1 <- results(dds_WT1)
+      res_WT2 <- results(dds_WT2)
 ```
 ```{r}
 summary(res_HW1)

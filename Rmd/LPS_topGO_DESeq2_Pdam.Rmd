@@ -120,12 +120,12 @@ for (DElist in DElists)
 ```
 ```{bash}
 mv ./outputs/DESeq-results/lists/*.csv ./outputs/DESeq-results/topGO
-bash ./bash/awk_REVIGO_LPS.sh
+bash ./bash/REVIGO_awk.sh
 mv ./outputs/DESeq-results/topGO/*.txt ./outputs/DESeq-results/REVIGO
 ```
 ```{bash}
-sed -i -e 's/"//g' ~/computing/scripts/EAPSI_LPS-master/DESEqresults_Pdam/REVIGO/*.txt
-rm  ~/computing/scripts/EAPSI_LPS-master/DESEqresults_Pdam/REVIGO/*.txt-e
+sed -i -e 's/"//g' ./outputs/DESeq-results/REVIGO/*.txt
+rm  ./outputs/DESeq-results/REVIGO/*.txt-e
 ```
 ```{r}
 topGOanalyze(WT2_unique)
