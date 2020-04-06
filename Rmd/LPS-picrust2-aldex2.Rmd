@@ -1,5 +1,5 @@
 ---
-title: "stable_LPS-aldex2"
+title: "stable_LPS-picrust2-aldex2"
 author: "Mike Connelly"
 date: "4/2/2020"
 output: html_document
@@ -12,6 +12,9 @@ knitr::opts_knit$set(root.dir = "~/computing/projects/EAPSI_Pocillopora_LPS")
 ## Setup packages and working directories
 ```{r, message=FALSE}
 library(ALDEx2)
+library(phyloseq)
+library(microbiome)
+library(tidyverse)
 library(patchwork)
 ```
 
@@ -24,42 +27,48 @@ map$Reef <- factor(map$Reef, levels = c("Houwan", "Wanglitung", "controls"), ord
 map$Colony <- factor(map$Colony, levels = c("HW1", "HW2", "WT1", "WT2", "controls"), ordered = TRUE)
 map$Treatment <- factor(map$Treatment, levels = c("control", "LPS", "positive", "negative"), ordered = TRUE)
 ```
-Treatment sample subsets of phyloseq objects
-```{r}
-nsamples(ps_assigned)
-samples <- sample_names(ps_assigned)
-samples.LPS <- grep("[HW][wt][1-2].[36][abc]", samples, value = TRUE)
-ps.LPS <- prune_samples(samples.LPS, ps_assigned)
-ps.LPS
-summarize_phyloseq(ps.LPS)
-sample_data(ps.LPS)$Treatment
-```
 
-Read out ASV tables from phyloseq objects
+Read in predicted metagenome pathway abundance tables from PICRUSt2 results
 ```{r}
-aldex.asv <- as.data.frame(t(otu_table(ps.LPS)))
+ec_predicted <- read.delim("./outputs/picrust2_out_pipeline/EC_predicted.tsv", header = TRUE)
+ko_predicted <- read.delim("./outputs/picrust2_out_pipeline/EC_predicted.tsv", header = TRUE)
+path_abund_unstrat <- read.delim("./outputs/picrust2_out_pipeline/pathways_out/path_abun_unstrat.tsv", header = TRUE)
+```
+```{r}
+path_abund <- path_abund_unstrat %>% select(pathway, matches("[HW][wt][1-2].[36][abc]"))
+row.names(path_abund) <- path_abund$pathway
+path_abund <- path_abund %>% select(-pathway)
+path_abund_round <- round(path_abund, digits = 0)
+```
+```{r}
+sum(path_abund)
+relative <- function(x) {round(((x / sum(x))*10000000), digits = 0)}
+path_abund_rel <- relative(path_abund)
+
+```
+```{r}
+aldex.asv <- path_abund_rel
 ```
 ```{r}
 conds <- as.character(sample_data(ps.LPS)$Treatment)
 conds
 ```
 
-
-
 ## ALDEx2 tests
 ```{r}
 x.ps <- aldex(reads = aldex.asv, conditions = conds, mc.samples = 128, test = "t", effect = TRUE, include.sample.summary = FALSE, denom = "all", verbose = TRUE)
 ```
 ```{r}
-write.csv(x.ps, file = "./outputs/aldex2/lps-aldex2.csv")
+write.csv(x.ps, file = "./outputs/aldex2/lps-picrust2-aldex2.csv")
 ```
 ```{r}
-pdf("./outputs/aldex2/lps-aldex2.pdf", height = 6, width = 10)
+pdf("./outputs/aldex2/picrust2_out_pipeline/picrust2-aldex2.pdf", height = 6, width = 10)
 par(mfrow=c(1,2))
 aldex.plot(x.ps, type = "MA", test = "welch")
 aldex.plot(x.ps, type="MW", test="welch")
 dev.off()
 ```
+
 ```{r, ggplot aldex.plot function}
 aldex.plot_gg <- function (x, ..., type = c("MW", "MA"), xlab = NULL, ylab = NULL, 
     xlim = NULL, ylim = NULL,
@@ -103,7 +112,7 @@ aldex.plot_gg <- function (x, ..., type = c("MW", "MA"), xlab = NULL, ylab = NUL
           geom_abline(aes(intercept = 0, slope = -1), linetype = "dashed", color = thres.line.col) +
           scale_x_continuous() +
           scale_y_continuous() +
-          scale_color_manual(name = "ASV Type", values = c(all.col, called.col, rare.col)) +
+          scale_color_manual(name = "ASV Type", values = c(all.col, rare.col, called.col)) +
           xlab(xlabel) +
           ylab(ylabel)
         return(ggaldex_mw)
@@ -118,7 +127,7 @@ aldex.plot_gg <- function (x, ..., type = c("MW", "MA"), xlab = NULL, ylab = NUL
           geom_point(size = pointsize) +
           scale_x_continuous() +
           scale_y_continuous() +
-          scale_color_manual(name = "ASV Type", values = c(all.col, called.col, rare.col)) +
+          scale_color_manual(name = "ASV Type", values = c(all.col, rare.col, called.col)) +
           xlab(xlabel) +
           ylab(ylabel)
         return(ggaldex_ma)
@@ -127,14 +136,13 @@ aldex.plot_gg <- function (x, ..., type = c("MW", "MA"), xlab = NULL, ylab = NUL
 ```
 ```{r}
 aldex1 <- aldex.plot_gg(x.ps, type = "MW", test = "welch")
-aldex1 <- aldex1 + ggtitle(subtitle = "LPS vs. Control Treatment", "Bacteria ASV ALDeX2 Differential Abundance MW/MA Plots") 
+aldex1 <- aldex1 + ggtitle(subtitle = "LPS vs. Control Treatment", "Bacteria PICRUSt2-predicted functional gene content ALDeX2 Differential Abundance MW/MA Plots") 
 
 aldex2 <- aldex.plot_gg(x.ps, type = "MA", test = "welch")
-#aldex2 + ggtitle(subtitle = "Heat vs. Control Treatment", "Bacteria ASV ALDeX2 Differential Abundance MA Plot") 
  
 aldexplots <- (aldex1 / aldex2) 
 aldexplots
-ggsave(aldexplots, filename = "./outputs/aldex2/lps-asv-aldex2.pdf", device = "pdf")
+ggsave(aldexplots, filename = "./outputs/aldex2/lps-picrust2-aldex2.pdf", device = "pdf")
 ```
 ```{r}
 cutoff <- 0.1
@@ -153,5 +161,3 @@ rare.ASVs1 <- cbind(called, rare.ASVs)
 ?aldex.plot
 ?aldex.effect
 ```
-
-

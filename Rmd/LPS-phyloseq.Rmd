@@ -72,7 +72,7 @@ colnames(map) <- c ("Reef",	"Colony",	"Environment",	"Treatment")
 map$SampleID <- rownames(map)
 map$Reef <- factor(map$Reef, levels = c("Houwan", "Wanglitung", "controls"), ordered = TRUE)
 map$Colony <- factor(map$Colony, levels = c("HW1", "HW2", "WT1", "WT2", "controls"), ordered = TRUE)
-map$Treatment <- factor(map$Treatment, levels = c("control", "Heat", "Antibiotics", "Antibiotics.Heat", "positive", "negative"), ordered = TRUE)
+map$Treatment <- factor(map$Treatment, levels = c("control", "LPS", "positive", "negative"), ordered = TRUE)
 ```
 Create phyloseq objects
 ```{r}
@@ -85,7 +85,7 @@ summarize_phyloseq(ps)
 ```
 Read in read depth information
 ```{r}
-readdepth <- read_csv("./QC/per-sample-fastq-counts.csv")
+readdepth <- read_csv("./outputs/qiime2/QC/per-sample-fastq-counts.csv")
 colnames(readdepth) <- c("SampleID", "Count")
 readdepth <- merge.data.frame(map, readdepth, by = "SampleID")
 ```
