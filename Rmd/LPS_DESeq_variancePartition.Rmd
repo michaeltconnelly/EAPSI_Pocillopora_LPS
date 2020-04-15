@@ -1,0 +1,122 @@
+---
+title: "LPS_DESeq_variancePartition.Rmd"
+author: "Mike Connelly"
+date: "4/14/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "~/computing/projects/EAPSI_Pocillopora_LPS")
+```
+## Setup packages and working directories
+```{r packages, error=FALSE, warning=FALSE, message=FALSE}
+library("tidyverse")
+library("DESeq2")
+library("ggpubr")
+library("apeglm")
+library("variancePartition")
+library("doParallel")
+```
+## Variance partitioning following the vignette
+```{r}
+varPart <- fitExtractVarPartModel(exprObj = assay(rld_LPS_int), data = coldata, formula = ~ (1|Colony) + (1|Treatment) + (1|Colony:Treatment))
+```
+```{r}
+# sort variables (i.e. columns) by median fraction
+# of variance explained
+vp <- sortCols( varPart )
+# Figure 1a
+# Bar plot of variance fractions for the first 10 genes
+plotPercentBars( vp[1:100,] )
+#
+# Figure 1b
+# violin plot of contribution of each variable to total variance
+plotVarPart( vp )
+```
+
+
+## Variance partitioning following Ross Cunning's code
+```{r varpart_col, eval = TRUE, results = 'hide'}
+# Get sample data for heat stress experiment into tibble
+coldata <- stable_samples_LPS %>%
+  as_tibble() %>%
+  dplyr::select(SampleID, Colony, Treatment)
+coldata$SampleID <- gsub('-','.', coldata$SampleID)
+coldata <- coldata %>% mutate(group = paste(Colony, Treatment, sep = "_"))
+# Gather raw counts into tibble
+colcounts <- countdata.sorted %>%
+  rownames_to_column("gene") %>%
+  as_tibble() %>%
+  gather(key = "SampleID", value = "count", -gene)
+```
+```{r}
+# Join count data with sample data, and nest vs count data by colony
+all_counts <- left_join(coldata, colcounts) 
+all <- all_counts %>% nest(-Colony) 
+
+# Create DESeqDataSet for each colony, filter genes mean count > 1 within each colony, and vst transform
+all <- all %>%
+  mutate(sdat = map(data, ~ data.frame(column_to_rownames(distinct(., SampleID, Treatment, group), "SampleID"))),
+         counts = map(data, ~ spread(select(., SampleID, gene, count), SampleID, count)),
+         counts = map(counts, ~ as.matrix(column_to_rownames(., "gene"))),
+         dds = map2(counts, sdat, ~ DESeqDataSetFromMatrix(countData = .x, colData = .y, design = ~ group)),
+         ddsf = map(dds, function(x) x[rowMedians(counts(x)) > 1, ]),  # Filter DESeqDataSet
+         vsd = map(ddsf, ~ vst(., blind = FALSE)))  # Variance Stabilizing Transformation
+
+# Run variance partition analysis for each colony
+cl <- makeCluster(8); registerDoParallel(cl)
+all <- all %>%
+  mutate(vp = map2(vsd, sdat, ~ fitExtractVarPartModel(
+    exprObj = assay(.x), data = .y, formula = ~ (1|Colony) + (1|Treatment) + (1|Colony:Treatment)
+    )))
+stopCluster(cl)
+
+# Calculate sum of variance explained by each source across all genes for each colony
+allsumm <- all %>% mutate(vpsum = map(vp, ~ summarise_all(., sum)))
+
+all$vp[[3]] %>%
+  as.data.frame(.) %>%
+  summarise_all(., median)
+
+plotVarPart(all$vp[[3]])
+rowSums(assay(all$vsd[[3]]))
+mean(all$vp[[3]]$sym)
+weighted.mean(all$vp[[3]]$sym, w = rowSums(assay(all$vsd[[3]])))
+```
+
+Plot sources of variance for each colony
+```{r plot_varpart, eval = TRUE}
+varpartfig <- allsumm %>% 
+  unnest(vpsum, .drop = T) %>%
+  gather(source, value, -colony) %>%
+  group_by(colony) %>%
+  mutate(relvar = value / sum(value)) %>%   # TOTAL VARIANCE NOT SAME FOR EACH COLONY -- NORMALIZE WITHIN COLONY
+  filter(source != "Residuals") %>%
+  mutate(source = recode(source, trt2 = "temp", `sym:trt2` = "sym:temp")) %>%
+  ggplot(aes(x = source, y = relvar*100, fill = colony)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ colony, labeller = global_labeller) +
+  labs(x = "", y = "% variance explained") +
+  theme_custom() +
+  theme(legend.position = "none",
+        strip.text.x = element_text(size = 6))
+
+varpartfig
+
+save(varpartfig, file = "output/varpartfig.RData")
+
+ggsave(filename = "output/varpart.png", plot = varpartfig, width = 69, height = 84.5, units = "mm")
+
+fig2 <- cowplot::plot_grid(pcoa, varpartfig, rel_widths = c(2, 1), labels = "AUTO")
+ggsave(filename = "figures/fig2.png", fig2, width = 169, height = 84.5, units = "mm")
+
+
+allsumm %>% 
+  unnest(vpsum, .drop = T) %>%
+  gather(source, value, -colony) %>%
+  group_by(colony) %>%
+  mutate(relvar = value / sum(value)) %>%   # TOTAL VARIANCE NOT SAME FOR EACH COLONY -- NORMALIZE WITHIN COLONY
+  filter(source != "Residuals") %>%
+  summarise(total_explained = sum(relvar))
+```

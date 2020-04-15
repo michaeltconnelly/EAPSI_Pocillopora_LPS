@@ -134,7 +134,7 @@ aldex2 <- aldex.plot_gg(x.ps, type = "MA", test = "welch")
  
 aldexplots <- (aldex1 / aldex2) 
 aldexplots
-ggsave(aldexplots, filename = "./outputs/aldex2/lps-asv-aldex2.pdf", device = "pdf")
+ggsave(aldexplots, filename = "./outputs/aldex2/lps-asv-aldex2.pdf", device = "pdf", width = 8.5, height = 5.5)
 ```
 ```{r}
 cutoff <- 0.1

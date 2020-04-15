@@ -7,313 +7,276 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI_HW-WT-master/")
+knitr::opts_knit$set(root.dir = "~/computing/projects/EAPSI_Pocillopora_LPS")
 library(DESeq2)
 library(tidyverse)
 library(ggrepel)
+library(patchwork)
 stringsAsFactors = FALSE
 ```
 ```{r}
 theme_set(theme_bw())
-DEGcolors <- c("grey", "blue", "red")
+DEGcolors <- c("dark grey", "blue", "red")
 ```
-
-
 ```{r}
-resultsNames(dds)
+resultsNames(dds_LPS_int)
 ```
-
 ##Results contrasts between individual treatments and control samples
-
-### LPS vs. Control
 ```{r}
-res_LPS_ctrl <- results(dds, contrast = c("Treatment", "LPS", "control"))
-res_LPS_ctrl$IDGeneInfo <- mcols(dds)$IDGeneInfo
-res_LPS_ctrl$IDGeneInfo <- as.character(res_LPS_ctrl$IDGeneInfo)
-#write.csv(as.data.frame(res_LPS_ctrl[order(res_LPS_ctrl$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI.HW-WT-master/DESeqresults_Pdam/tables/all/res_LPS_ctrl.csv")
-ressig_LPS_ctrl <- subset(res_LPS_ctrl, padj<0.1)
-ressig_LPS_ctrl_up <- subset(res_LPS_ctrl, padj<0.1 & log2FoldChange>0.2)
-ressig_LPS_ctrl_dn <- subset(res_LPS_ctrl, padj<0.1 & log2FoldChange<0.2)
-#write.csv(as.data.frame(ressig_LPS_ctrl[order(ressig_LPS_ctrl$padj, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI.HW-WT-master/DESeqresults_Pdam/tables/overall/res_LPS_ctrl.csv")
-#write.csv(as.data.frame(ressig_LPS_ctrl_up[order(ressig_LPS_ctrl_up$log2FoldChange, decreasing = TRUE),]), file = "~/computing/scripts/EAPSI.HW-WT-master/DESeqresults_Pdam/tables/up/res_LPS_ctrl_up.csv")
-#write.csv(as.data.frame(ressig_LPS_ctrl_dn[order(ressig_LPS_ctrl_dn$log2FoldChange, decreasing = FALSE),]), file = "~/computing/scripts/EAPSI.HW-WT-master/DESeqresults_Pdam/tables/down/res_LPS_ctrl_dn.csv")
-colnames(res_LPS_ctrl)
-summary(res_LPS_ctrl)
+round_df <- function(df, digits) {
+  nums <- vapply(df, is.numeric, FUN.VALUE = logical(1))
+
+  df[,nums] <- round(df[,nums], digits = digits)
+
+  (df)
+}
 ```
-
-## Assemble data frame with complete log-fold changes between treatment contrasts
-
 ```{r}
-doubledf <- data.frame(cbind(res_LPS_ctrl$log2FoldChange, -log10(res_LPS_ctrl$padj),
-                             res_anti_ctrl$log2FoldChange, -log10(res_anti_ctrl$padj),
-                             res_heat_ctrl$log2FoldChange, -log10(res_heat_ctrl$padj),
-                             res_anti.heat_ctrl$log2FoldChange, -log10(res_anti.heat_ctrl$padj),
-                             res_anti.heat.LPS_ctrl$log2FoldChange, -log10(res_anti.heat.LPS_ctrl$padj)))
+alpha <- -log10(0.05)
+```
+## Assemble data frame with complete log-fold changes between treatment contrasts
+```{r}
+doubledf <- data.frame(cbind(res_LPS_int$log2FoldChange, -log10(res_LPS_int$padj),
+                             res_HW1_LPS$log2FoldChange, -log10(res_HW1_LPS$padj),
+                             res_HW2_LPS$log2FoldChange, -log10(res_HW2_LPS$padj),
+                             res_WT1_LPS$log2FoldChange, -log10(res_WT1_LPS$padj),
+                             res_WT2_LPS$log2FoldChange, -log10(res_WT2_LPS$padj)))
+###
 colnames(doubledf) <- c("LFC_LPS", "padj_LPS",
-                        "LFC_Anti", "padj_Anti",
-                        "LFC_Heat", "padj_Heat",
-                        "LFC_AntiHeat", "padj_AntiHeat",
-                        "LFC_AntiHeatLPS", "padj_AntiHeatLPS")
-doubledf$ID <- rownames(res)
-doubledf <- doubledf[,c(11, 1:10)]
-doubledf$IDGeneInfo <- res$IDGeneInfo
+                        "LFC_HW1", "padj_HW1",
+                        "LFC_HW2", "padj_HW2",
+                        "LFC_WT1", "padj_WT1",
+                        "LFC_WT2", "padj_WT2")
+doubledf <- round_df(doubledf, digits = 2)
+doubledf$ID <- rownames(res_LPS)
+doubledf <- doubledf[,c(11, 1:10)] 
+doubledf$GeneInfo <- res_LPS$GeneInfo
+doubledf$KO_terms <- res_LPS$KO_terms
+doubledf$Pfam_domains <- res_LPS$Pfam_domains
 
 # Add DEG up/down columns for single treatments
-doubledf$DEG_LPS <- ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS > 1, "Upregulated", 
-                           ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS < -1, "Downregulated", "NA"))
+doubledf$DEG_LPS <- ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS > 0, "Upregulated", 
+                           ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS < 0, "Downregulated", "NA"))
 doubledf$DEG_LPS <- factor(doubledf$DEG_LPS, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
 
-doubledf$DEG_Anti <- ifelse(doubledf$padj_Anti > 2 & doubledf$LFC_Anti > 1, "Upregulated", 
-                            ifelse(doubledf$padj_Anti > 2 & doubledf$LFC_Anti < -1, "Downregulated", "NA"))
-doubledf$DEG_Anti <- factor(doubledf$DEG_Anti, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+doubledf$DEG_HW1 <- ifelse(doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 > 0, "Upregulated", 
+                            ifelse(doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 < 0, "Downregulated", "NA"))
+doubledf$DEG_HW1 <- factor(doubledf$DEG_HW1, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
 
-doubledf$DEG_Heat <- ifelse(doubledf$padj_Heat > 2 & doubledf$LFC_Heat > 1, "Upregulated", 
-                            ifelse(doubledf$padj_Heat > 2 & doubledf$LFC_Heat < -1, "Downregulated", "NA"))
-doubledf$DEG_Heat <- factor(doubledf$DEG_Heat, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+doubledf$DEG_HW2 <- ifelse(doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 > 0, "Upregulated", 
+                            ifelse(doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 < 0, "Downregulated", "NA"))
+doubledf$DEG_HW2 <- factor(doubledf$DEG_HW2, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
   
-doubledf$DEG_AntiHeat <- ifelse(doubledf$padj_AntiHeat > 2 & doubledf$LFC_AntiHeat > 1, "Upregulated", 
-                                ifelse(doubledf$padj_AntiHeat > 2 & doubledf$LFC_AntiHeat < -1, "Downregulated", "NA"))
-doubledf$DEG_AntiHeat <- factor(doubledf$DEG_AntiHeat, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+doubledf$DEG_WT1 <- ifelse(doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 > 0, "Upregulated", 
+                                ifelse(doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 < 0, "Downregulated", "NA"))
+doubledf$DEG_WT1 <- factor(doubledf$DEG_WT1, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
 
-doubledf$DEG_AntiHeatLPS <-  ifelse(doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS > 1, "Upregulated", 
-                                    ifelse(doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS < -1, "Downregulated", "NA"))
-doubledf$DEG_AntiHeatLPS <- factor(doubledf$DEG_AntiHeatLPS, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+doubledf$DEG_WT2 <-  ifelse(doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 > 0, "Upregulated", 
+                                    ifelse(doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 < 0, "Downregulated", "NA"))
+doubledf$DEG_WT2 <- factor(doubledf$DEG_WT2, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
 
-doubledf <- doubledf[,c(1,12,2:3,13,4:5,14,6:7,15,8:9,16,10:11,17)]
+doubledf <- doubledf[,c(1,12:14,2:3,15,4:5,16,6:7,17,8:9,18,10:11,19)]
 
 # Add DEG threshold columns for two treatment consensus DEGs
-doubledf$cDEG_LPS.Anti <- ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS > 1 & 
-                            doubledf$padj_Anti > 2 & doubledf$LFC_Anti > 1, "UP_UP",
+doubledf$cDEG_LPS.HW1 <- ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS > 1 & 
+                            doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 > 1, "UP_UP",
                             ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS > 1 & 
-                            doubledf$padj_Anti > 2 & doubledf$LFC_Anti < -1, "UP_DN",
+                            doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 < -1, "UP_DN",
                             ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS < -1 & 
-                            doubledf$padj_Anti > 2 & doubledf$LFC_Anti > 1, "DN_UP",
+                            doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 > 1, "DN_UP",
                             ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS < -1 & 
-                            doubledf$padj_Anti > 2 & doubledf$LFC_Anti < -1, "DN_DN", "AA"))))
+                            doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 < -1, "DN_DN", "AA"))))
 
-doubledf$cDEG_LPS.Heat <- ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS > 1 & 
-                            doubledf$padj_Heat > 2 & doubledf$LFC_Heat > 1, "UP_UP",
+doubledf$cDEG_LPS.HW2 <- ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS > 1 & 
+                            doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 > 1, "UP_UP",
                             ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS > 1 & 
-                            doubledf$padj_Heat > 2 & doubledf$LFC_Heat < -1, "UP_DN",
+                            doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 < -1, "UP_DN",
                             ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS < -1 & 
-                            doubledf$padj_Heat > 2 & doubledf$LFC_Heat > 1, "DN_UP",
+                            doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 > 1, "DN_UP",
                             ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS < -1 & 
-                            doubledf$padj_Heat > 2 & doubledf$LFC_Heat < -1, "DN_DN", "AA"))))
+                            doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 < -1, "DN_DN", "AA"))))
 
-doubledf$cDEG_Anti.Heat <- ifelse(doubledf$padj_Anti > 2 & doubledf$LFC_Anti > 1 & 
-                            doubledf$padj_Heat > 2 & doubledf$LFC_Heat > 1, "UP_UP",
-                            ifelse(doubledf$padj_Anti > 2 & doubledf$LFC_Anti > 1 & 
-                            doubledf$padj_Heat > 2 & doubledf$LFC_Heat < -1, "UP_DN",
-                            ifelse(doubledf$padj_Anti > 2 & doubledf$LFC_Anti < -1 & 
-                            doubledf$padj_Heat > 2 & doubledf$LFC_Heat > 1, "DN_UP",
-                            ifelse(doubledf$padj_Anti > 2 & doubledf$LFC_Anti < -1 & 
-                            doubledf$padj_Heat > 2 & doubledf$LFC_Heat < -1, "DN_DN", "AA"))))
-
-doubledf$cDEG_Anti.AntiHeat <- ifelse(doubledf$padj_Anti > 2 & doubledf$LFC_Anti > 1 & 
-                            doubledf$padj_AntiHeat > 2 & doubledf$LFC_AntiHeat > 1, "UP_UP",
-                            ifelse(doubledf$padj_Anti > 2 & doubledf$LFC_Anti > 1 & 
-                            doubledf$padj_AntiHeat > 2 & doubledf$LFC_AntiHeat < -1, "UP_DN",
-                            ifelse(doubledf$padj_Anti > 2 & doubledf$LFC_Anti < -1 & 
-                            doubledf$padj_AntiHeat > 2 & doubledf$LFC_AntiHeat > 1, "DN_UP",
-                            ifelse(doubledf$padj_Anti > 2 & doubledf$LFC_Anti < -1 & 
-                            doubledf$padj_AntiHeat > 2 & doubledf$LFC_AntiHeat < -1, "DN_DN", "AA"))))
-
-doubledf$cDEG_Anti.AntiHeatLPS <- ifelse(doubledf$padj_Anti > 2 & doubledf$LFC_Anti > 1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS > 1, "UP_UP",
-                            ifelse(doubledf$padj_Anti > 2 & doubledf$LFC_Anti > 1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS < -1, "UP_DN",
-                            ifelse(doubledf$padj_Anti > 2 & doubledf$LFC_Anti < -1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS > 1, "DN_UP",
-                            ifelse(doubledf$padj_Anti > 2 & doubledf$LFC_Anti < -1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS < -1, "DN_DN", "AA"))))
-
-doubledf$cDEG_Heat.AntiHeat <- ifelse(doubledf$padj_Heat > 2 & doubledf$LFC_Heat > 1 & 
-                            doubledf$padj_AntiHeat > 2 & doubledf$LFC_AntiHeat > 1, "UP_UP",
-                            ifelse(doubledf$padj_Heat > 2 & doubledf$LFC_Heat > 1 & 
-                            doubledf$padj_AntiHeat > 2 & doubledf$LFC_AntiHeat < -1, "UP_DN",
-                            ifelse(doubledf$padj_Heat > 2 & doubledf$LFC_Heat < -1 & 
-                            doubledf$padj_AntiHeat > 2 & doubledf$LFC_AntiHeat > 1, "DN_UP",
-                            ifelse(doubledf$padj_Heat > 2 & doubledf$LFC_Heat < -1 & 
-                            doubledf$padj_AntiHeat > 2 & doubledf$LFC_AntiHeat < -1, "DN_DN", "AA"))))
-
-doubledf$cDEG_Heat.AntiHeatLPS <- ifelse(doubledf$padj_Heat > 2 & doubledf$LFC_Heat > 1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS > 1, "UP_UP",
-                            ifelse(doubledf$padj_Heat > 2 & doubledf$LFC_Heat > 1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS < -1, "UP_DN",
-                            ifelse(doubledf$padj_Heat > 2 & doubledf$LFC_Heat < -1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS > 1, "DN_UP",
-                            ifelse(doubledf$padj_Heat > 2 & doubledf$LFC_Heat < -1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS < -1, "DN_DN", "AA"))))
-
-doubledf$cDEG_LPS.AntiHeatLPS <- ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS > 1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS > 1, "UP_UP",
+doubledf$cDEG_LPS.WT1 <- ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS > 1 & 
+                            doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 > 1, "UP_UP",
                             ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS > 1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS < -1, "UP_DN",
+                            doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 < -1, "UP_DN",
                             ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS < -1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS > 1, "DN_UP",
+                            doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 > 1, "DN_UP",
                             ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS < -1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS < -1, "DN_DN", "AA"))))
+                            doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 < -1, "DN_DN", "AA"))))
 
-doubledf$cDEG_AntiHeat.AntiHeatLPS <- ifelse(doubledf$padj_AntiHeat > 2 & doubledf$LFC_AntiHeat > 1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS > 1, "UP_UP",
-                            ifelse(doubledf$padj_AntiHeat > 2 & doubledf$LFC_AntiHeat > 1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS < -1, "UP_DN",
-                            ifelse(doubledf$padj_AntiHeat > 2 & doubledf$LFC_AntiHeat < -1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS > 1, "DN_UP",
-                            ifelse(doubledf$padj_AntiHeat > 2 & doubledf$LFC_AntiHeat < -1 & 
-                            doubledf$padj_AntiHeatLPS > 2 & doubledf$LFC_AntiHeatLPS < -1, "DN_DN", "AA"))))
+doubledf$cDEG_LPS.WT2 <- ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS > 1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 > 1, "UP_UP",
+                            ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS > 1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 < -1, "UP_DN",
+                            ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS < -1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 > 1, "DN_UP",
+                            ifelse(doubledf$padj_LPS > 2 & doubledf$LFC_LPS < -1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 < -1, "DN_DN", "AA"))))
 
-write.csv(doubledf, file = "~/computing/scripts/EAPSI.HW-WT-master/DESeqresults_Pdam/tables/all/all_LFC-pdaj.csv")
+doubledf$cDEG_HW1.HW2 <- ifelse(doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 > 1 & 
+                            doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 > 1, "UP_UP",
+                            ifelse(doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 > 1 & 
+                            doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 < -1, "UP_DN",
+                            ifelse(doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 < -1 & 
+                            doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 > 1, "DN_UP",
+                            ifelse(doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 < -1 & 
+                            doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 < -1, "DN_DN", "AA"))))
 
-#doubledf <- doubledf %>% filter(DEG_Anti.AntiHeat!="NA") %>% filter(DEG_Heat.AntiHeat!="NA") %>% filter(DEG_Anti.Heat!="NA")
+doubledf$cDEG_HW1.WT1 <- ifelse(doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 > 1 & 
+                            doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 > 1, "UP_UP",
+                            ifelse(doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 > 1 & 
+                            doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 < -1, "UP_DN",
+                            ifelse(doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 < -1 & 
+                            doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 > 1, "DN_UP",
+                            ifelse(doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 < -1 & 
+                            doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 < -1, "DN_DN", "AA"))))
+
+doubledf$cDEG_HW1.WT2 <- ifelse(doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 > 1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 > 1, "UP_UP",
+                            ifelse(doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 > 1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 < -1, "UP_DN",
+                            ifelse(doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 < -1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 > 1, "DN_UP",
+                            ifelse(doubledf$padj_HW1 > 2 & doubledf$LFC_HW1 < -1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 < -1, "DN_DN", "AA"))))
+
+doubledf$cDEG_HW2.WT1 <- ifelse(doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 > 1 & 
+                            doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 > 1, "UP_UP",
+                            ifelse(doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 > 1 & 
+                            doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 < -1, "UP_DN",
+                            ifelse(doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 < -1 & 
+                            doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 > 1, "DN_UP",
+                            ifelse(doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 < -1 & 
+                            doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 < -1, "DN_DN", "AA"))))
+
+doubledf$cDEG_HW2.WT2 <- ifelse(doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 > 1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 > 1, "UP_UP",
+                            ifelse(doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 > 1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 < -1, "UP_DN",
+                            ifelse(doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 < -1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 > 1, "DN_UP",
+                            ifelse(doubledf$padj_HW2 > 2 & doubledf$LFC_HW2 < -1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 < -1, "DN_DN", "AA"))))
+
+doubledf$cDEG_WT1.WT2 <- ifelse(doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 > 1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 > 1, "UP_UP",
+                            ifelse(doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 > 1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 < -1, "UP_DN",
+                            ifelse(doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 < -1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 > 1, "DN_UP",
+                            ifelse(doubledf$padj_WT1 > 2 & doubledf$LFC_WT1 < -1 & 
+                            doubledf$padj_WT2 > 2 & doubledf$LFC_WT2 < -1, "DN_DN", "AA"))))
+
+doubledf <- doubledf %>% arrange(desc(padj_LPS))
+
+write.csv(doubledf, file = "./outputs/DESeq-results/tables/all/all_LFC-padj.csv", row.names = FALSE)
+
+doubledf_intersect <- doubledf %>% filter(DEG_HW1!="NA" & DEG_HW2!="NA" & DEG_WT1!="NA" & DEG_WT2!="NA") 
+doubledf_union <- doubledf %>% filter(DEG_LPS != "NA" | DEG_HW1!="NA" | DEG_HW2!="NA" | DEG_WT1!="NA" | DEG_WT2!="NA") 
+
+write.csv(doubledf_union, file = "./outputs/DESeq-results/tables/all/union_LFC-padj.csv", row.names = FALSE)
 ```
 
 ## Doubleplots
-
-### LPS vs. Antibiotics
+### Overall LPS vs. Houwan1
 ```{r}
-doubledf <- doubledf %>% arrange(cDEG_LPS.Anti)
-pdf(file = "~/computing/scripts/EAPSI.HW-WT-master/DESeqresults_Pdam/figures/doubleplots/double_LPS.Anti.pdf", height = 8, width = 8)
-dpg <- ggplot(doubledf, aes(LFC_LPS, LFC_Anti))
-dpg + 
+dpg_hw1 <- doubledf_union %>% arrange(cDEG_LPS.HW1) %>% ggplot(aes(LFC_LPS, LFC_HW1))
+dpg_hw1 <- dpg_hw1 + 
   geom_hline(yintercept = 0, color = "black", size = 0.2) +
   geom_vline(xintercept = 0, color = "black", size = 0.2) +
   geom_abline(intercept = 0, slope = 1, color = "black", size = 0.2, linetype = "dashed") +
-  scale_x_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  scale_y_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  geom_point(aes(color=cDEG_LPS.Anti)) +
+  scale_x_continuous(limits = c(-8,8), breaks = seq(-8,8,2)) + 
+  scale_y_continuous(limits = c(-8,8), breaks = seq(-8,8,2)) + 
+  geom_point(aes(color=cDEG_LPS.HW1), show.legend = FALSE) +
   scale_colour_manual(values = DEGcolors) +
-  geom_text_repel(data = doubledf[doubledf$cDEG_LPS.Anti=="UP_UP",], aes(label = doubledf$IDGeneInfo[doubledf$cDEG_LPS.Anti=="UP_UP"]), size = 1.5, box.padding = unit(0.25, "lines")) +
-  geom_text_repel(data = doubledf[doubledf$cDEG_LPS.Anti=="DN_DN",], aes(label = doubledf$IDGeneInfo[doubledf$cDEG_LPS.Anti=="DN_DN"]), size = 1.5, box.padding = unit(0.25, "lines"))
+  geom_text_repel(data = doubledf_union[doubledf_union$cDEG_LPS.HW1=="UP_UP",], aes(label = doubledf_union$ID[doubledf_union$cDEG_LPS.HW1=="UP_UP"]), size = 1.5, box.padding = unit(0.25, "lines")) +
+  geom_text_repel(data = doubledf_union[doubledf_union$cDEG_LPS.HW1=="DN_DN",], aes(label = doubledf_union$ID[doubledf_union$cDEG_LPS.HW1=="DN_DN"]), size = 1.5, box.padding = unit(0.25, "lines"))
+ggsave(dpg_hw1, filename = "./outputs/DESeq-results/figures/doubleplots/double_LPS_HW1.png", device = "png", height = 3, width = 3)
 ```
-
-### Antibiotics vs. Antibiotics + Heat
+### Overall LPS vs. Houwan2
 ```{r}
-doubledf <- doubledf %>% arrange(cDEG_Anti.AntiHeat)
-pdf(file = "~/computing/scripts/EAPSI.HW-WT-master/DESeqresults_Pdam/figures/double_Anti.AntiHeat.pdf", height = 8, width = 8)
-dpg <- ggplot(doubledf, aes(LFC_Anti, LFC_AntiHeat))
-dpg + 
+dpg_hw2 <- doubledf_union %>% arrange(cDEG_LPS.HW2) %>% ggplot(aes(LFC_LPS, LFC_HW2))
+dpg_hw2 <- dpg_hw2 + 
   geom_hline(yintercept = 0, color = "black", size = 0.2) +
   geom_vline(xintercept = 0, color = "black", size = 0.2) +
   geom_abline(intercept = 0, slope = 1, color = "black", size = 0.2, linetype = "dashed") +
-  scale_x_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  scale_y_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  geom_point(aes(color=cDEG_Anti.AntiHeat)) +
+  scale_x_continuous(limits = c(-8,8), breaks = seq(-8,8,2)) + 
+  scale_y_continuous(limits = c(-8,8), breaks = seq(-8,8,2)) + 
+  geom_point(aes(color=cDEG_LPS.HW2), show.legend = FALSE) +
   scale_colour_manual(values = DEGcolors) +
-  geom_text_repel(data = doubledf[doubledf$cDEG_Anti.AntiHeat=="UP_UP"[1:10],], aes(label = doubledf$IDGeneInfo[doubledf$cDEG_Anti.AntiHeat=="UP_UP"[1:10]]), size = 1.5, box.padding = unit(0.25, "lines")) +
-  geom_text_repel(data = doubledf[doubledf$cDEG_Anti.AntiHeat=="DN_DN"[1:10],], aes(label = doubledf$IDGeneInfo[doubledf$cDEG_Anti.AntiHeat=="DN_DN"[1:10]]), size = 1.5, box.padding = unit(0.25, "lines"))
+  geom_text_repel(data = doubledf_union[doubledf_union$cDEG_LPS.HW2=="UP_UP",], aes(label = doubledf_union$ID[doubledf_union$cDEG_LPS.HW2=="UP_UP"]), size = 1.5, box.padding = unit(0.25, "lines")) +
+  geom_text_repel(data = doubledf_union[doubledf_union$cDEG_LPS.HW2=="DN_DN",], aes(label = doubledf_union$ID[doubledf_union$cDEG_LPS.HW2=="DN_DN"]), size = 1.5, box.padding = unit(0.25, "lines"))
+ggsave(dpg_hw2, filename = "./outputs/DESeq-results/figures/doubleplots/double_LPS_HW2.png", device = "png", height = 3, width = 3)
 ```
-
-### Heat vs. Antibiotics + Heat
+### Overall LPS vs. Wanglitung1
 ```{r}
-doubledf <- doubledf %>% arrange(cDEG_Heat.AntiHeat)
-pdf(file = "~/computing/scripts/EAPSI.HW-WT-master/DESeqresults_Pdam/figures/double_Heat.AntiHeat.pdf", height = 8, width = 8)
-dpg <- ggplot(doubledf, aes(LFC_Heat, LFC_AntiHeat))
-dpg + 
+dpg_wt1 <- doubledf_union %>% arrange(cDEG_LPS.WT1) %>% ggplot(aes(LFC_LPS, LFC_WT1))
+dpg_wt1 <- dpg_wt1 + 
   geom_hline(yintercept = 0, color = "black", size = 0.2) +
   geom_vline(xintercept = 0, color = "black", size = 0.2) +
   geom_abline(intercept = 0, slope = 1, color = "black", size = 0.2, linetype = "dashed") +
-  scale_x_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  scale_y_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  geom_point(aes(color=cDEG_Heat.AntiHeat)) +
+  scale_x_continuous(limits = c(-8,8), breaks = seq(-8,8,2)) + 
+  scale_y_continuous(limits = c(-8,8), breaks = seq(-8,8,2)) + 
+  geom_point(aes(color=cDEG_LPS.WT1), show.legend = FALSE) +
   scale_colour_manual(values = DEGcolors) +
-  geom_text_repel(data = doubledf[doubledf$cDEG_Heat.AntiHeat=="UP_UP"[1:10],], aes(label = doubledf$IDGeneInfo[doubledf$cDEG_Heat.AntiHeat=="UP_UP"[1:10]]), size = 1.5, box.padding = unit(0.25, "lines")) +
-  geom_text_repel(data = doubledf[doubledf$cDEG_Heat.AntiHeat=="DN_DN"[1:10],], aes(label = doubledf$IDGeneInfo[doubledf$cDEG_Heat.AntiHeat=="DN_DN"[1:10]]), size = 1.5, box.padding = unit(0.25, "lines"))
+  geom_text_repel(data = doubledf_union[doubledf_union$cDEG_LPS.WT1=="UP_UP",], aes(label = doubledf_union$ID[doubledf_union$cDEG_LPS.WT1=="UP_UP"]), size = 1.5, box.padding = unit(0.25, "lines")) +
+  geom_text_repel(data = doubledf_union[doubledf_union$cDEG_LPS.WT1=="DN_DN",], aes(label = doubledf_union$ID[doubledf_union$cDEG_LPS.WT1=="DN_DN"]), size = 1.5, box.padding = unit(0.25, "lines"))
+ggsave(dpg_wt1, filename = "./outputs/DESeq-results/figures/doubleplots/double_LPS_WT1.png", device = "png", height = 3, width = 3)
 ```
-
-### LPS vs. Antibiotics + Heat + LPS
+### Overall LPS vs. Wanglitung2
 ```{r}
-doubledf <- doubledf %>% arrange(cDEG_LPS.AntiHeatLPS)
-pdf(file = "~/computing/scripts/EAPSI.HW-WT-master/DESeqresults_Pdam/figures/double_LPS.AntiHeatLPS.pdf", height = 8, width = 8)
-dpg <- ggplot(doubledf, aes(LFC_LPS, LFC_AntiHeatLPS))
-dpg + 
+dpg_wt2 <- doubledf_union %>% arrange(cDEG_LPS.WT2) %>% ggplot(aes(LFC_LPS, LFC_WT2))
+dpg_wt2 <- dpg_wt2 + 
   geom_hline(yintercept = 0, color = "black", size = 0.2) +
   geom_vline(xintercept = 0, color = "black", size = 0.2) +
   geom_abline(intercept = 0, slope = 1, color = "black", size = 0.2, linetype = "dashed") +
-  scale_x_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  scale_y_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  geom_point(aes(color=cDEG_LPS.AntiHeatLPS)) +
+  scale_x_continuous(limits = c(-8,8), breaks = seq(-8,8,2)) + 
+  scale_y_continuous(limits = c(-8,8), breaks = seq(-8,8,2)) + 
+  geom_point(aes(color=cDEG_LPS.WT2), show.legend = FALSE) +
   scale_colour_manual(values = DEGcolors) +
-  geom_text_repel(data = doubledf[doubledf$cDEG_LPS.AntiHeatLPS=="UP_UP",], aes(label = doubledf$IDGeneInfo[doubledf$cDEG_LPS.AntiHeatLPS=="UP_UP"]), size = 1.5, box.padding = unit(0.25, "lines")) +
-  geom_text_repel(data = doubledf[doubledf$cDEG_LPS.AntiHeatLPS=="DN_DN",], aes(label = doubledf$IDGeneInfo[doubledf$cDEG_LPS.AntiHeatLPS=="DN_DN"]), size = 1.5, box.padding = unit(0.25, "lines"))
+  geom_text_repel(data = doubledf_union[doubledf_union$cDEG_LPS.WT2=="UP_UP",], aes(label = doubledf_union$ID[doubledf_union$cDEG_LPS.WT2=="UP_UP"]), size = 1.5, box.padding = unit(0.25, "lines")) +
+  geom_text_repel(data = doubledf_union[doubledf_union$cDEG_LPS.WT2=="DN_DN",], aes(label = doubledf_union$ID[doubledf_union$cDEG_LPS.WT2=="DN_DN"]), size = 1.5, box.padding = unit(0.25, "lines"))
+ggsave(dpg_wt2, filename = "./outputs/DESeq-results/figures/doubleplots/double_LPS_WT2.png", device = "png", height = 3, width = 3)
+```
+```{r, warning=FALSE}
+dpg_hw1 | dpg_hw2 | dpg_wt1 | dpg_wt2
+ggsave(filename = "./outputs/DESeq-results/figures/doubleplots/doubles_LPS.png", device = "png", height = 3, width = 12)
 ```
 
-### Antibiotics + Heat vs. Antibiotics + Heat + LPS
+## Search for genes that respond similarly across genotypes, regardless of significance
 ```{r}
-doubledf <- doubledf %>% arrange(cDEG_AntiHeat.AntiHeatLPS)
-pdf(file = "~/computing/scripts/EAPSI.HW-WT-master/DESeqresults_Pdam/figures/double_AntiHeat.AntiHeatLPS.pdf", height = 8, width = 8)
-dpg <- ggplot(doubledf, aes(LFC_AntiHeat, LFC_AntiHeatLPS))
-dpg + 
-  geom_hline(yintercept = 0, color = "black", size = 0.2) +
-  geom_vline(xintercept = 0, color = "black", size = 0.2) +
-  geom_abline(intercept = 0, slope = 1, color = "black", size = 0.2, linetype = "dashed") +
-  scale_x_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  scale_y_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  geom_point(aes(color=cDEG_AntiHeat.AntiHeatLPS)) +
-  scale_colour_manual(values = DEGcolors) 
-  #geom_text_repel(data = doubledf[doubledf$cDEG_AntiHeat.AntiHeatLPS=="UP_UP",], aes(label = doubledf$IDGeneInfo[doubledf$cDEG_AntiHeat.AntiHeatLPS=="UP_UP"]), size = 1.5, box.padding = unit(0.25, "lines")) +
-  #geom_text_repel(data = doubledf[doubledf$cDEG_AntiHeat.AntiHeatLPS=="DN_DN",], aes(label = doubledf$IDGeneInfo[doubledf$cDEG_AntiHeat.AntiHeatLPS=="DN_DN"]), size = 1.5, box.padding = unit(0.25, "lines"))
+### genes that are upregulated (LFC > 0) and significantly differentially expressed (padj < 0.05) in at least one genotype or the overall treatment
+sims_up <- doubledf %>%
+  filter(LFC_LPS > 0 & LFC_HW1 > 0 & LFC_HW2 > 0 & LFC_WT1 > 0 & LFC_WT2 > 0) %>%
+  filter(padj_LPS > alpha | padj_HW1 > alpha | padj_HW2 > alpha | padj_WT1 > alpha | padj_WT2 > alpha) %>%
+  arrange(desc(padj_LPS)) 
+write.csv(sims_up, file = "./outputs/DESeq-results/tables/all/sims_up.csv", row.names = FALSE)
+length(sims_up$ID)
 ```
-
-## Filter and select data frame for specific treatments
-
-### Antibiotics, Heat, Antibiotics + Heat
 ```{r}
-anti_heat_doubledf <- doubledf %>% select(ID, IDGeneInfo, LFC_Anti, padj_Anti, DEG_Anti, LFC_Heat, padj_Heat, DEG_Heat, LFC_AntiHeat, padj_AntiHeat, DEG_AntiHeat, cDEG_Anti.Heat, cDEG_Anti.AntiHeat, cDEG_Heat.AntiHeat) %>% filter(DEG_Anti!="NA" | DEG_Heat!="NA" | DEG_AntiHeat!="NA") %>% filter(padj_Anti!="NA") %>% filter(padj_Heat!="NA") %>% filter(padj_AntiHeat!="NA")
-
-write.csv(anti_heat_doubledf, file = "~/computing/scripts/EAPSI.HW-WT-master/DESeqresults_Pdam/tables/all/anti_heat_LFC-pdaj.csv")
+### genes that are upregulated (LFC < 0) and significantly differentially expressed (padj < 0.05) in at least one genotype or the overall treatment
+sims_dn <- doubledf %>%
+  filter(LFC_LPS < 0 & LFC_HW1 < 0 & LFC_HW2 < 0 & LFC_WT1 < 0 & LFC_WT2 < 0) %>%
+  filter(padj_LPS > alpha | padj_HW1 > alpha | padj_HW2 > alpha | padj_WT1 > alpha | padj_WT2 > alpha) %>%
+  arrange(desc(padj_LPS)) 
+write.csv(sims_dn, file = "./outputs/DESeq-results/tables/all/sims_dn.csv", row.names = FALSE)
+length(sims_dn$ID)
 ```
 
-### Antibiotics vs. Heat
+## Search for genes with interaction effects
 ```{r}
-anti_heat_doubledf <- anti_heat_doubledf %>% arrange(cDEG_Anti.Heat)
-#pdf(file = "~/computing/scripts/EAPSI.HW-WT-master/DESeqresults_Pdam/figures/doubleplots/double_Anti.Heat.pdf", height = 8, width = 8)
-dpg <- ggplot(anti_heat_doubledf, aes(LFC_Anti, LFC_Heat))
-dpg + 
-  geom_hline(yintercept = 0, color = "black", size = 0.2) +
-  geom_vline(xintercept = 0, color = "black", size = 0.2) +
-  geom_abline(intercept = 0, slope = 1, color = "black", size = 0.2, linetype = "dashed") +
-  scale_x_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  scale_y_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  geom_point(aes(color=cDEG_Anti.Heat)) +
-  scale_colour_manual(values = DEGcolors) 
+res_int_HW2 <- as.data.frame(res_LPS_int_HW2) %>% filter(padj < 0.05)
+res_int_WT1 <- as.data.frame(res_LPS_int_WT1) %>% filter(padj < 0.05)
+res_int_WT2 <- as.data.frame(res_LPS_int_WT2) %>% filter(padj < 0.05)
+###
+intergenes_HW2 <- res_int_HW2$ID
+intergenes_WT1 <- res_int_WT1$ID
+intergenes_WT2 <- res_int_WT2$ID
+intergenes_WT<- union(res_int_WT1$ID, res_int_WT2$ID)
+intergenes <- union(intergenes_WT,  res_int_HW2$ID)
+length(intergenes)
 ```
 
-### Antibiotics vs. Antibiotics + Heat
-```{r}
-anti_heat_doubledf <- anti_heat_doubledf %>% arrange(cDEG_Anti.AntiHeat)
-#pdf(file = "~/computing/scripts/EAPSI.HW-WT-master/DESeqresults_Pdam/figures/doubleplots/double_Anti.Heat.pdf", height = 8, width = 8)
-dpg <- ggplot(anti_heat_doubledf, aes(LFC_Anti, LFC_AntiHeat))
-dpg + 
-  geom_hline(yintercept = 0, color = "black", size = 0.2) +
-  geom_vline(xintercept = 0, color = "black", size = 0.2) +
-  geom_abline(intercept = 0, slope = 1, color = "black", size = 0.2, linetype = "dashed") +
-  scale_x_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  scale_y_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  geom_point(aes(color=cDEG_Anti.AntiHeat)) +
-  scale_colour_manual(values = DEGcolors) 
-```
 
-### Heat vs. Antibiotics + Heat
-```{r}
-anti_heat_doubledf <- anti_heat_doubledf %>% arrange(cDEG_Heat.AntiHeat)
-#pdf(file = "~/computing/scripts/EAPSI.HW-WT-master/DESeqresults_Pdam/figures/doubleplots/double_Anti.Heat.pdf", height = 8, width = 8)
-dpg <- ggplot(anti_heat_doubledf, aes(LFC_Heat, LFC_AntiHeat))
-dpg + 
-  geom_hline(yintercept = 0, color = "black", size = 0.2) +
-  geom_vline(xintercept = 0, color = "black", size = 0.2) +
-  geom_abline(intercept = 0, slope = 1, color = "black", size = 0.2, linetype = "dashed") +
-  scale_x_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  scale_y_continuous(limits = c(-10,10), breaks = seq(-10,10,2)) + 
-  geom_point(aes(color=cDEG_Heat.AntiHeat)) +
-  scale_colour_manual(values = DEGcolors) 
-```
-
-```{r}
-library(rgl)
-```
-
-```{r}
-plot3d(anti_heat_doubledf$LFC_Anti, anti_heat_doubledf$LFC_Heat, anti_heat_doubledf$LFC_AntiHeat, xlim = c(-10,10), xlab = "Anti", ylim = c(-10,10), ylab = "Heat", zlim = c(-10,10), zlab = "Anti + Heat")
-```
 

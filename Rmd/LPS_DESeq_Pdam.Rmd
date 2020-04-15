@@ -61,7 +61,6 @@ countdata_HW2 <- dplyr::select(countdata_LPS, matches("Hw2.*"))
 countdata_WT1 <- dplyr::select(countdata_LPS, matches("Wt1.*"))
 countdata_WT2 <- dplyr::select(countdata_LPS, matches("Wt2.*"))
 ```
-
 ```{r}
 stable_samples_LPS <- filter(stable_samples, Treatment == "control" | Treatment == "LPS")
 ```
@@ -74,45 +73,45 @@ stable_samples_WT2 <- filter(stable_samples_LPS, Colony == "WT2")# %>% select(-c
 
 ## Convert to matrices 
 ```{r, include=FALSE}
-      countdata_LPS <- as.matrix(countdata_LPS)
+countdata_LPS <- as.matrix(countdata_LPS)
 ```
 ```{r, include=FALSE}
-      countdata_HW1 <- as.matrix(countdata_HW1)
-      countdata_HW2 <- as.matrix(countdata_HW2)
-      countdata_WT1 <- as.matrix(countdata_WT1)
-      countdata_WT2 <- as.matrix(countdata_WT2)
+countdata_HW1 <- as.matrix(countdata_HW1)
+countdata_HW2 <- as.matrix(countdata_HW2)
+countdata_WT1 <- as.matrix(countdata_WT1)
+countdata_WT2 <- as.matrix(countdata_WT2)
 ```
 ## Create DESeq data objects
 ### DESeq2 treatment model objects
 ```{r, message=FALSE}
-      dds_LPS <- DESeqDataSetFromMatrix(countData=countdata_LPS, colData=stable_samples_LPS, design= ~Batch + Colony + Treatment)
+dds_LPS <- DESeqDataSetFromMatrix(countData=countdata_LPS, colData=stable_samples_LPS, design= ~Batch + Colony + Treatment)
       dds_LPS$Treatment <- factor(dds_LPS$Treatment, levels=c("control", "LPS"))
 relevel(dds_LPS$Treatment, ref = "control")
 ```
 ### Interaction DESeq model
 ```{r, message=FALSE}
-      dds_LPS_int <- DESeqDataSetFromMatrix(countData=countdata_LPS, colData=stable_samples_LPS, design= ~Batch + Colony + Treatment + Colony:Treatment)
+dds_LPS_int <- DESeqDataSetFromMatrix(countData=countdata_LPS, colData=stable_samples_LPS, design= ~Batch + Colony + Treatment + Colony:Treatment)
       dds_LPS_int$Treatment <- factor(dds_LPS$Treatment, levels=c("control", "LPS"))
 relevel(dds_LPS$Treatment, ref = "control")
 ```
 ### DESeq2 genotype model objects
 ```{r, message=FALSE}
-      dds_HW1 <- DESeqDataSetFromMatrix(countData=countdata_HW1, colData=stable_samples_HW1, design= ~Batch + Treatment)
+dds_HW1 <- DESeqDataSetFromMatrix(countData=countdata_HW1, colData=stable_samples_HW1, design= ~Batch + Treatment)
       dds_HW1$Treatment <- factor(dds_HW1$Treatment, levels=c("control", "LPS"))
 relevel(dds_HW1$Treatment, ref = "control")
 ```
 ```{r, message=FALSE}
-      dds_HW2 <- DESeqDataSetFromMatrix(countData=countdata_HW2, colData=stable_samples_HW2, design= ~Batch + Treatment)
+dds_HW2 <- DESeqDataSetFromMatrix(countData=countdata_HW2, colData=stable_samples_HW2, design= ~Batch + Treatment)
       dds_HW2$Treatment <- factor(dds_HW2$Treatment, levels=c("control", "LPS"))
 relevel(dds_HW2$Treatment, ref = "control")
 ```
 ```{r, message=FALSE}
-      dds_WT1 <- DESeqDataSetFromMatrix(countData=countdata_WT1, colData=stable_samples_WT1, design= ~Batch + Treatment)
+dds_WT1 <- DESeqDataSetFromMatrix(countData=countdata_WT1, colData=stable_samples_WT1, design= ~Batch + Treatment)
       dds_WT1$Treatment <- factor(dds_WT1$Treatment, levels=c("control", "LPS"))
 relevel(dds_WT1$Treatment, ref = "control")
 ```
 ```{r, message=FALSE}
-      dds_WT2 <- DESeqDataSetFromMatrix(countData=countdata_WT2, colData=stable_samples_WT2, design= ~Treatment)
+dds_WT2 <- DESeqDataSetFromMatrix(countData=countdata_WT2, colData=stable_samples_WT2, design= ~Treatment)
       dds_WT2$Treatment <- factor(dds_WT2$Treatment, levels=c("control", "LPS"))
 relevel(dds_WT2$Treatment, ref = "control")
 ```
@@ -136,27 +135,27 @@ mcols(dds_WT2) <- cbind(mcols(dds_WT2), genefeatures)
 
 ## Perform DESeq2 analyses
 ```{r, message=FALSE}
-      dds_LPS <- DESeq(dds_LPS)
-      dds_LPS_int <- DESeq(dds_LPS_int)
+dds_LPS <- DESeq(dds_LPS)
+dds_LPS_int <- DESeq(dds_LPS_int)
 ```
 ```{r, message=FALSE}
-      dds_HW1 <- DESeq(dds_HW1)
-      dds_HW2 <- DESeq(dds_HW2)
-      dds_WT1 <- DESeq(dds_WT1)
-      dds_WT2 <- DESeq(dds_WT2)
+dds_HW1 <- DESeq(dds_HW1)
+dds_HW2 <- DESeq(dds_HW2)
+dds_WT1 <- DESeq(dds_WT1)
+dds_WT2 <- DESeq(dds_WT2)
 ```
 
 ## Filter low counts
 ```{r}
-      keep <- rowSums(counts(dds_LPS), na.rm = TRUE) >= 10
-      dds_LPS <- dds_LPS[keep,]
-      dds_LPS_int <- dds_LPS_int[keep,]
+keep <- rowSums(counts(dds_LPS), na.rm = TRUE) >= 10
+dds_LPS <- dds_LPS[keep,]
+dds_LPS_int <- dds_LPS_int[keep,]
 ```
 ```{r}
-      dds_HW1 <- dds_HW1[keep,]
-      dds_HW2 <- dds_HW2[keep,]
-      dds_WT1 <- dds_WT1[keep,]
-      dds_WT2 <- dds_WT2[keep,]
+dds_HW1 <- dds_HW1[keep,]
+dds_HW2 <- dds_HW2[keep,]
+dds_WT1 <- dds_WT1[keep,]
+dds_WT2 <- dds_WT2[keep,]
 ```
 
 ## Check output of Treatment model
@@ -164,11 +163,6 @@ mcols(dds_WT2) <- cbind(mcols(dds_WT2), genefeatures)
 ```{r}
 resultsNames(dds_LPS)
 #mcols(dds_LPS)
-```
-```{r}
-#pdf(file="./outputs/DESeq-results/figures/DEseq2_DispEsts+MA.pdf", width = 11, height = 8.5)
-plotDispEsts(dds_LPS)
-plotMA(res_LPS, ylim = c(-10, 10))
 ```
 ### Obtain DESeq results 
 ```{r}
@@ -192,7 +186,11 @@ mcols(res_LPS)$description
 ###
 write.csv(as.data.frame(res_LPS[order(res_LPS$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/res_LPS.csv")
 ```
-
+```{r}
+#pdf(file="./outputs/DESeq-results/figures/DEseq2_DispEsts+MA.pdf", width = 11, height = 8.5)
+plotDispEsts(dds_LPS)
+plotMA(res_LPS, ylim = c(-10, 10))
+```
 ## Check output of Treatment:genotype interaction model
 ### Ensure quality of LPS DESeq2 analysis
 ```{r}
@@ -337,10 +335,10 @@ resultsNames(dds_WT1)
 resultsNames(dds_WT2)
 ```
 ```{r}
-      res_HW1 <- results(dds_HW1)
-      res_HW2 <- results(dds_HW2)
-      res_WT1 <- results(dds_WT1)
-      res_WT2 <- results(dds_WT2)
+res_HW1 <- results(dds_HW1, alpha = 0.01)
+res_HW2 <- results(dds_HW2, alpha = 0.01)
+res_WT1 <- results(dds_WT1, alpha = 0.01)
+res_WT2 <- results(dds_WT2, alpha = 0.01)
 ```
 ```{r}
 summary(res_HW1)
@@ -349,14 +347,41 @@ summary(res_WT1)
 summary(res_WT2)
 ```
 ```{r}
-res_HW1$IDGeneInfo <- mcols(dds_HW1)$IDGeneInfo
-res_HW1$IDGeneInfo <- as.character(res_HW1$IDGeneInfo)
-res_HW2$IDGeneInfo <- mcols(dds_HW2)$IDGeneInfo
-res_HW2$IDGeneInfo <- as.character(res_HW2$IDGeneInfo)
-res_WT1$IDGeneInfo <- mcols(dds_WT1)$IDGeneInfo
-res_WT1$IDGeneInfo <- as.character(res_WT1$IDGeneInfo)
-res_WT2$IDGeneInfo <- mcols(dds_WT2)$IDGeneInfo
-res_WT2$IDGeneInfo <- as.character(res_WT2$IDGeneInfo)
+res_HW1$ID <- mcols(dds_HW1)$ID
+res_HW1$GeneInfo <- mcols(dds_HW1)$GeneInfo
+res_HW1$KO_terms <- mcols(dds_HW1)$KO_terms
+res_HW1$Pfam_domains <- mcols(dds_HW1)$Pfam_domains
+res_HW1$ID <- as.character(res_HW1$ID)
+res_HW1$GeneInfo <- as.character(res_HW1$GeneInfo)
+res_HW1$KO_terms <- as.character(res_HW1$KO_terms)
+res_HW1$Pfam_domains <- as.character(res_HW1$Pfam_domains)
+###
+res_HW2$ID <- mcols(dds_HW2)$ID
+res_HW2$GeneInfo <- mcols(dds_HW2)$GeneInfo
+res_HW2$KO_terms <- mcols(dds_HW2)$KO_terms
+res_HW2$Pfam_domains <- mcols(dds_HW2)$Pfam_domains
+res_HW2$ID <- as.character(res_HW2$ID)
+res_HW2$GeneInfo <- as.character(res_HW2$GeneInfo)
+res_HW2$KO_terms <- as.character(res_HW2$KO_terms)
+res_HW2$Pfam_domains <- as.character(res_HW2$Pfam_domains)
+###
+res_WT1$ID <- mcols(dds_WT1)$ID
+res_WT1$GeneInfo <- mcols(dds_WT1)$GeneInfo
+res_WT1$KO_terms <- mcols(dds_WT1)$KO_terms
+res_WT1$Pfam_domains <- mcols(dds_WT1)$Pfam_domains
+res_WT1$ID <- as.character(res_WT1$ID)
+res_WT1$GeneInfo <- as.character(res_WT1$GeneInfo)
+res_WT1$KO_terms <- as.character(res_WT1$KO_terms)
+res_WT1$Pfam_domains <- as.character(res_WT1$Pfam_domains)
+###
+res_WT2$ID <- mcols(dds_WT2)$ID
+res_WT2$GeneInfo <- mcols(dds_WT2)$GeneInfo
+res_WT2$KO_terms <- mcols(dds_WT2)$KO_terms
+res_WT2$Pfam_domains <- mcols(dds_WT2)$Pfam_domains
+res_WT2$ID <- as.character(res_WT2$ID)
+res_WT2$GeneInfo <- as.character(res_WT2$GeneInfo)
+res_WT2$KO_terms <- as.character(res_WT2$KO_terms)
+res_WT2$Pfam_domains <- as.character(res_WT2$Pfam_domains)
 ```
 ```{r}
 res_HW1_normal <- lfcShrink(dds_HW1, coef = "Treatment_LPS_vs_control", type = "normal")

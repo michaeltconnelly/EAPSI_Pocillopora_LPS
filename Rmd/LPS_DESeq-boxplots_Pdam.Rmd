@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "~/computing/scripts/EAPSI_HW-WT-master/")
+knitr::opts_knit$set(root.dir = "~/computing/projects/EAPSI_Pocillopora_LPS")
 ```
 ## Setup packages and working directories
 ```{r packages, error=FALSE, warning=FALSE, message=FALSE}
@@ -32,8 +32,8 @@ condfillcolors_LPS <- c("#99CCFF", "#FFCCFF")
 Create ggboxplot functions
 ```{r}
 ggboxplot <- function(gene, res, samples) {
-titlegene <- grep(gene, res$IDGeneInfo)
-plotTitle <- res$IDGeneInfo[titlegene]
+titlegene <- grep(gene, res$ID)
+plotTitle <- res$GeneInfo[titlegene]
 gplot <- plotCounts(dds_LPS, gene = gene, intgroup = "Treatment", returnData = TRUE)
 print(ggplot(gplot, aes(x=Treatment, y=count, color=samples$Treatment)) 
       + geom_boxplot(aes(fill=samples$Treatment), show.legend = FALSE) 
@@ -68,8 +68,8 @@ ggboxplot("pdam_00016279", res_LPS, stable_samples_LPS)
 ```{r}
 gglistplot <- function(genelist, dds, res, samples) {
 for (gene in genelist) {
-titlegene <- grep(gene, res$IDGeneInfo)
-plotTitle <- res$IDGeneInfo[titlegene]
+titlegene <- grep(gene, res$ID)
+plotTitle <- res$GeneInfo[titlegene]
 gplot <- plotCounts(dds, gene = gene, intgroup = "Treatment", returnData = TRUE)
 print(ggplot(gplot, aes(x=Treatment, y=count, color=samples$Treatment)) 
       + geom_boxplot(aes(fill=samples$Treatment), show.legend = FALSE) 
@@ -83,8 +83,8 @@ print(ggplot(gplot, aes(x=Treatment, y=count, color=samples$Treatment))
 ```{r}
 gglistplot_genotype <- function(genelist, dds, res, samples) {
 for (gene in genelist) {
-titlegene <- grep(gene, res$IDGeneInfo)
-plotTitle <- res$IDGeneInfo[titlegene]
+titlegene <- grep(gene, res$ID)
+plotTitle <- res$GeneInfo[titlegene]
 gplot <- plotCounts(dds, gene = gene, intgroup = "Treatment", returnData = TRUE)
 print(ggplot(gplot, aes(x=Treatment, y=count, color=samples$Treatment)) 
       + geom_boxplot(aes(fill=samples$Colony), show.legend = FALSE) 
@@ -107,15 +107,19 @@ for use in LPS paper with proper theme and formatting
 ```{r}
 gglistplot_genotype <- function(genelist, dds, res, samples) {
 for (gene in genelist) {
-titlegene <- grep(gene, res$IDGeneInfo)
+titlegene <- grep(gene, res$ID)
 plotTitle <- rownames(res)[titlegene]
-plotsub <- gsub("pdam_[0123456789]{8} ", "", res$IDGeneInfo[titlegene])
+plotsub <- gsub("pdam_[0123456789]{8} ", "", res$GeneInfo[titlegene])
 ###
 gplot <- plotCounts(dds, gene = gene, intgroup = "Treatment", returnData = TRUE)
 gbplot <- ggplot(gplot, aes(x=Treatment, y=count, color=samples$Treatment)) +
   geom_boxplot(aes(fill = samples$Treatment), show.legend = FALSE) +
   geom_point(aes(shape = samples$Colony), size = 3, show.legend = FALSE) +
   facet_grid(.~samples$Colony) +
+  ### add interaction line between genotypes
+  stat_summary(fun=mean, geom="path", colour="black", size=0.8, aes(group = samples$Colony)) +
+  stat_summary(fun=mean, geom="point", colour="black", size=3, aes(shape = samples$Colony, group = samples$Colony), show.legend = FALSE) +
+  ###
   scale_color_manual(values=condcolors_LPS) + scale_fill_manual(values = condfillcolors_LPS) + scale_shape_manual(values = colshapes) +
   scale_y_continuous(trans = log2_trans(), breaks = trans_breaks("log2", function(x) 2^x), labels = trans_format("log2", math_format(2^.x)))  + 
   ggtitle(plotTitle, subtitle = plotsub) +
@@ -144,23 +148,8 @@ print(gbp)
 }
 ```
 
-
-
-## Prepare lists of gene IDs based on interesting groups
-## Differentially expressed gene lists
-```{r}
-DElists <- list.files(path = "../EAPSI_LPS-master/DESeqresults_Pdam/lists", pattern = "_ID.txt", full.names = TRUE)
-```
-```{r, message=FALSE}
-LPS_ctrl_up_IDs <- scan("../EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_up_ID.txt", what = "character")
-LPS_ctrl_dn_IDs <- scan("../EAPSI_LPS-master/DESeqresults_Pdam/lists/res_LPS_ctrl_dn_ID.txt", what = "character")
-```
 ## Plot gene count boxplots
 ### DE Genes
-```{r}
-#pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/LPSboxplots_upDEGs.pdf", width = 8, height = 5)
-gglistplot(LPS_ctrl_up_IDs, dds_LPS, res_LPS, stable_samples_LPS)
-```
 
 ```{r}
 pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/LPSboxplots_geno_upDEGs.pdf", width = 2.8, height = 2.1)
@@ -182,83 +171,29 @@ gglistplot_genotype(WT1_unique, dds_LPS, res_LPS, stable_samples_LPS)
 pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/LPSboxplots_WT2_unique.pdf", width = 2.8, height = 2.1)
 gglistplot_genotype(WT2_unique, dds_LPS, res_LPS, stable_samples_LPS)
 ```
-### Innate immune genes
-Lists of gene IDs
-#### Pattern recognition receptors
+
+### Significant interaction effect genes
 ```{r}
-TLR_IDs <- scan("./genefamilies_Pdam/TLRs_IDs.txt", what = "character")
-Lectin_IDs <- scan("./genefamilies_Pdam/Lectins_IDs.txt", what = "character")
-#NLR_IDs
-TNFR_IDs <- scan("./genefamilies_Pdam/TNFRs_IDs.txt", what = "character")
-```
-```{r}
-gglistplot_genotype(TNFR_IDs)
-```
-```{r}
-gglistplot(Lectin_IDs)
+res_int_HW2 <- as.data.frame(res_LPS_int_HW2) %>% filter(padj < 0.05)
+res_int_WT1 <- as.data.frame(res_LPS_int_WT1) %>% filter(padj < 0.05)
+res_int_WT2 <- as.data.frame(res_LPS_int_WT2) %>% filter(padj < 0.05)
+###
+intergenes_HW2 <- res_int_HW2$ID
+intergenes_WT1 <- res_int_WT1$ID
+intergenes_WT2 <- res_int_WT2$ID
+intergenes_WT<- union(res_int_WT1$ID, res_int_WT2$ID)
+intergenes <- union(intergenes_WT,  res_int_HW2$ID)
+###
+pdf(file = "./outputs/DESeq-results/figures/LPSboxplots_interaction-genes.pdf", width = 4, height = 3)
+gglistplot_genotype(intergenes, dds_LPS_int, res_LPS_int, stable_samples_LPS)
 ```
 
-#### Signaling pathways
-NFKB
+### Similar profile genes
 ```{r}
-NFKB_IDs <- scan("~/computing/sequences/genomes/coral/pocillopora/pdam/genefamilies_Pdam/NFKB_IDs.txt", what = "character")
+pdf(file = "./outputs/DESeq-results/figures/LPSboxplots_sims-up.pdf", width = 4, height = 3)
+gglistplot_genotype(sims_up$ID, dds_LPS_int, res_LPS_int, stable_samples_LPS)
 ```
 ```{r}
-gglistplot_genotype(NFKB_IDs,  dds_LPS, res_LPS, stable_samples_LPS)
-```
-JNK
-MAPK
-```{r}
-TRAF_IDs <- scan("./genefamilies_Pdam/TRAFs_IDs.txt", what = "character")
-```
-```{r}
-gglistplot_genotype(TRAF_IDs)
-```
-
-#### Effector mechanisms
-MPEG1 pdam_00017055
-Damicornin pdam_00023321
-DELTA-stichotoxin-She4b
-Phospholipases
-```{r}
-PL_IDs <- scan("~/computing/sequences/genomes/coral/pocillopora/pdam/genefamilies_Pdam/PL_IDs.txt", what = "character")
-```
-```{r}
-gglistplot_genotype(PL_IDs, dds_LPS, res_LPS, stable_samples_LPS)
-```
-Toxins
-```{r}
-Tox_IDs <- scan("~/computing/sequences/genomes/coral/pocillopora/pdam/genefamilies_Pdam/Toxin_IDs.txt", what = "character")
-pdf(file = "~/computing/scripts/EAPSI_LPS-master/DESeqresults_Pdam/figures/LPSboxplots_toxins.pdf", width = 8, height = 5)
-gglistplot(Tox_IDs[c(3,5,6,7,9,10,11,12,13,17,18,19,20,21,22,23,24,25,26,27,28)], dds_LPS, res_LPS, stable_samples_LPS)
-```
-```{r}
-effectorIDs <- c("pdam_00017055", "pdam_00004721", "pdam_00023321")
-gglistplot(effectorIDs, dds_LPS, res_LPS, stable_samples_LPS)
-```
-
-#### Misc. immune genes
-### Apoptosis pathway genes
-### Antioxidant response
-### Transcription factors
-
-WGCNA Hub Genes
-```{r}
-hubIDs <- scan("./WGCNAmodules_Pdam_ctrl-LPS/hubgenes/hubs_IDs.txt", what = "character")
-```
-```{r}
-gglistplot(hubIDs[1:20])
-```
-
-WGCNA Module Genes
-## Input lists of co-expressed module genes after WGCNA analysis
-```{r, warning = FALSE}
-modulelists <- list.files(path = "./WGCNAmodules_Pdam_ctrl-LPS/lists", pattern = "_ID.txt", full.names = TRUE)
-```
-```{r}
-blackIDs <- scan("./WGCNAmodules_Pdam_ctrl-LPS/lists/black_ID.txt", what = "character")
-```
-```{r}
-intblackIDs <- c(14,21,29,199,200,213,231,336,359:364,402,408,415,437,481)
-gglistplot(blackIDs[intblackIDs], dds_LPS, res_LPS, stable_samples_LPS)
+pdf(file = "./outputs/DESeq-results/figures/LPSboxplots_sims-dn.pdf", width = 4, height = 3)
+gglistplot_genotype(sims_dn$ID, dds_LPS_int, res_LPS_int, stable_samples_LPS)
 ```

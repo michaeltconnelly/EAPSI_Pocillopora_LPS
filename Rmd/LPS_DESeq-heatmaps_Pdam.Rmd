@@ -37,6 +37,10 @@ anno_colors <- list(
   Colony = c(HW1=colcolors[1], HW2=colcolors[2], WT1=colcolors[3], WT2=colcolors[4]),
   Treatment = c(control=condcolors_LPS[1], LPS=condcolors_LPS[2]),
   DEG = c(Upregulated="red", Downregulated="blue"))
+anno_colors_2 <- list(
+  Colony = c(HW1=colcolors[1], HW2=colcolors[2], WT1=colcolors[3], WT2=colcolors[4]),
+  Treatment = c(control=condcolors_LPS[1], LPS=condcolors_LPS[2]),
+  DEG = c(Upregulated="red", Downregulated="blue", Other="grey"))
 ```
 
 ## Sample Clustering Heatmap
@@ -83,6 +87,8 @@ paletteLength <- 400
 geneexpcolors <- colorRampPalette(rev(c("red", "yellow", "white", "cyan", "blue")))(paletteLength)
 # Orange --> Cyan gradient
 geneexpcolors2 <- colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(paletteLength)
+# Red --> Blue dark gradient
+geneexpcolors3 <- colorRampPalette(rev(c("red", "yellow", "grey10", "cyan", "blue")))(paletteLength)
 
 # Here is a fancy color palette inspired by http://www.colbyimaging.com/wiki/statistics/color-bars
 down <- rainbow(50, start=rgb2hsv(col2rgb('cyan'))[1], end=rgb2hsv(col2rgb('blue'))[1])
@@ -92,7 +98,7 @@ geneexpcolors_break <- colorRampPalette(cols)(paletteLength)
 6/length(geneexpcolors_break)
 ```
 ```{r}
-color.bar(geneexpcolors, -1, 1)
+color.bar(geneexpcolors3, -1, 1)
 ```
 
 ### Create top 20 variable gene matrix 
@@ -131,7 +137,7 @@ rownames(mat50) <- rowData(rld_LPS)$ID[topVarGenes50]
 ## 50 Gene Heatmap
 ```{r}
 #pdf(file = "./outputs/DESeq-results/figures/Heatmap_top50.pdf", width = 11, height = 8.5)
-pheatmap(mat50, col=geneexpcolors2,
+pheatmap(mat50, col=geneexpcolors3,
          annotation_col = anno_col,
          annotation_row = NULL,
          show_rownames = TRUE,
@@ -222,10 +228,8 @@ pheatmap(mat_resfdr1_LPS_ctrl_dn, col=geneexpcolors,
 ```{r}
 mat_resfdr1_LPS <- rbind(mat_resfdr1_LPS_ctrl_up, mat_resfdr1_LPS_ctrl_dn)
 mat_resfdr1_LPS <- mat_resfdr1_LPS - rowMeans(mat_resfdr1_LPS)
-```
-
-```{r}
-max(mat_resfdr1_LPS)
+range(mat_resfdr1_LPS)
+length(rownames(mat_resfdr1_LPS))
 ```
 
 ## LPS-Control DEG Heatmap
@@ -241,21 +245,21 @@ anno_row <- rbind(anno_row_up, anno_row_dn)
 anno_row$Gene <- NULL
 ```
 ```{r}
-pdf(file = "./outputs/DESeq-results/figures/Heatmap_allDEG_4.pdf", width = 8.5, height = 3.5)
-pheatmap(mat_resfdr1_LPS, col=geneexpcolors2,
+pdf(file = "./outputs/DESeq-results/figures/heatmaps/Heatmap_allDEG_3.pdf", width = 8.5, height = 3.5)
+pheatmap(mat_resfdr1_LPS, col=geneexpcolors3,
          annotation_col = anno_col[,c("Colony", "Treatment")],
          annotation_row = anno_row,
          show_rownames = FALSE,
          show_colnames = FALSE,
          fontsize_row = 3,
-         annotation_colors = anno_colors,
+         annotation_colors = anno_colors_2,
          annotation_legend = TRUE,
          annotation_names_col = FALSE,
          annotation_names_row = FALSE,
          legend = TRUE,
          treeheight_col = 30,
          treeheight_row = 80,
-         breaks = seq(-3, 3, by = 0.015),
+         breaks = seq(-4, 4, by = 0.02),
          cutree_rows = 2,
          cutree_cols = 2)
 ```
@@ -592,7 +596,7 @@ DEG_dn
 ```{r geneheatmap, message = FALSE, warning = FALSE}
 #Upregulated DEGs
 mat_consensus_up  <- assay(rld_LPS)[DEG_up, ]
-row.names(mat_consensus_up) <- res_LPS$IDGeneInfo[rownames(res_LPS) %in% DEG_up]
+row.names(mat_consensus_up) <- paste0(res_LPS$ID[rownames(res_LPS) %in% DEG_up], res_LPS$GeneInfo[rownames(res_LPS) %in% DEG_up])
 #Downregulated DEGs
 #rownames_resfdr1_HW1_LPS_dn <- row.names(resfdr1_HW1_LPS_dn)
 #mat_resfdr1_HW1_LPS_dn  <- assay(rld_HW1)[rownames_resfdr1_HW1_LPS_dn, ]
@@ -614,8 +618,8 @@ rownames(mat_consensus_up)
 
 ### Consensus DEG heatmap
 ```{r}
-pdf(file = "./outputs/DESeq-results/figures/Heatmap_consensusDEGs_1.pdf", width = 6.5, height = 2)
-pheatmap(mat_consensus_up, col=mypalette,
+pdf(file = "./outputs/DESeq-results/figures/heatmaps/Heatmap_consensusDEGs_2.pdf", width = 6.5, height = 2)
+pheatmap(mat_consensus_up, col=geneexpcolors3,
          annotation_col = anno_col[,c("Colony", "Treatment")],
          #annotation_row = anno_row,
          show_rownames = TRUE,
@@ -630,13 +634,13 @@ pheatmap(mat_consensus_up, col=mypalette,
          treeheight_row = 20,
          cellwidth = 6,
          cellheight = 15,
-         breaks = seq(-3, 3, by = 0.015),
+         breaks = seq(-4, 4, by = 0.02),
          cutree_rows = 1,
          cutree_cols = 2)
 ```
 ```{r}
 #pdf(file = "./outputs/DESeq-results/figures/Heatmap_consensusDEGs_2.pdf", width = 8.5, height = 3)
-pheatmap(mat_consensus_up, col=geneexpcolors2,
+pheatmap(mat_consensus_up, col=geneexpcolors3,
          annotation_col = anno_col[,c("Colony", "Treatment")],
          annotation_row = anno_row,
          show_rownames = TRUE,
@@ -652,4 +656,206 @@ pheatmap(mat_consensus_up, col=geneexpcolors2,
          breaks = seq(0, 15, by = 0.05),
          cutree_rows = 1,
          cutree_cols = 2)
+```
+## Similar pattern gene heatmaps
+```{r}
+mat_sims_up  <- assay(rld_LPS_int)[sims_up$ID, ]
+row.names(mat_sims_up) <- res_LPS_int$ID[rownames(res_LPS_int) %in% sims_up$ID]
+mat_sims_up <- mat_sims_up - rowMeans(mat_sims_up)
+range(mat_sims_up)
+```
+```{r}
+pdf(file = "./outputs/DESeq-results/figures/heatmaps/Heatmap_simsup_2.pdf", width = 6.5, height = 10)
+pheatmap(mat_sims_up, col=geneexpcolors3,
+         annotation_col = anno_col[,c("Colony", "Treatment")],
+         #annotation_row = anno_row,
+         show_rownames = TRUE,
+         show_colnames = FALSE,
+         fontsize_row = 6,
+         annotation_colors = anno_colors,
+         annotation_legend = TRUE,
+         annotation_names_col = FALSE,
+         annotation_names_row = FALSE,
+         legend = TRUE,
+         treeheight_col = 8,
+         treeheight_row = 20,
+         breaks = seq(-3, 3, by = 0.015),
+         cutree_rows = 1,
+         cutree_cols = 2)
+#dev.off()
+```
+```{r}
+mat_sims_dn  <- assay(rld_LPS_int)[sims_dn$ID, ]
+row.names(mat_sims_dn) <- res_LPS_int$ID[rownames(res_LPS_int) %in% sims_dn$ID]
+mat_sims_dn <- mat_sims_dn - rowMeans(mat_sims_dn)
+range(mat_sims_dn)
+```
+```{r}
+pdf(file = "./outputs/DESeq-results/figures/heatmaps/Heatmap_simsdn.pdf", width = 6.5, height = 10)
+pheatmap(mat_sims_dn, col=geneexpcolors3,
+         annotation_col = anno_col[,c("Colony", "Treatment")],
+         #annotation_row = anno_row,
+         show_rownames = TRUE,
+         show_colnames = FALSE,
+         fontsize_row = 6,
+         annotation_colors = anno_colors,
+         annotation_legend = TRUE,
+         annotation_names_col = FALSE,
+         annotation_names_row = FALSE,
+         legend = TRUE,
+         treeheight_col = 8,
+         treeheight_row = 20,
+         breaks = seq(-4, 4, by = 0.02),
+         cutree_rows = 1,
+         cutree_cols = 2)
+#dev.off()
+```
+```{r}
+#Combine into one matrix
+mat_sims <- rbind(mat_sims_up, mat_sims_dn)
+mat_sims <- mat_sims - rowMeans(mat_sims)
+range(mat_sims)
+length(rownames(mat_sims))
+```
+```{r}
+### Create DEG row annotations
+anno_row_up <- data.frame(rownames(mat_resfdr1_LPS_ctrl_up), rep("Upregulated", length((rownames(mat_resfdr1_LPS_ctrl_up)))))
+colnames(anno_row_up) <- c("Gene","DEG")
+rownames(anno_row_up) <- (rownames(mat_resfdr1_LPS_ctrl_up))
+anno_row_dn <- data.frame(rownames(mat_resfdr1_LPS_ctrl_dn), rep("Downregulated", length((rownames(mat_resfdr1_LPS_ctrl_dn)))))
+colnames(anno_row_dn) <- c("Gene","DEG")
+rownames(anno_row_dn) <- (rownames(mat_resfdr1_LPS_ctrl_dn))
+anno_row_sep <- data.frame(rownames(mat_sims_sep), rep("Other", length((rownames(mat_sims_sep)))))
+colnames(anno_row_sep) <- c("Gene","DEG")
+rownames(anno_row_sep) <- (rownames(mat_sims_sep))
+anno_row <- rbind(anno_row_up, anno_row_dn, anno_row_sep)
+anno_row$Gene <- NULL
+
+```
+```{r}
+pdf(file = "./outputs/DESeq-results/figures/heatmaps/Heatmap_sims.pdf", width = 8.5, height = 8)
+pheatmap(mat_sims, col=geneexpcolors3,
+         annotation_col = anno_col[,c("Colony", "Treatment")],
+         annotation_row = anno_row,
+         show_rownames = FALSE,
+         show_colnames = FALSE,
+         fontsize_row = 3,
+         annotation_colors = anno_colors_2,
+         annotation_legend = TRUE,
+         annotation_names_col = FALSE,
+         annotation_names_row = FALSE,
+         legend = TRUE,
+         treeheight_col = 30,
+         treeheight_row = 80,
+         breaks = seq(-4, 4, by = 0.02),
+         cutree_rows = 1,
+         cutree_cols = 2)
+#dev.off()
+```
+## !DEGs in overall model
+```{r}
+`%notin%` <- Negate(`%in%`)
+```
+```{r}
+mat_sims_sep <- mat_sims[rownames(mat_sims) %notin% rownames(mat_resfdr1_LPS), ]
+mat_sims_sep <- mat_sims_sep - rowMeans(mat_sims_sep)
+range(mat_sims_sep)
+length(rownames(mat_sims_sep))
+```
+```{r}
+anno_row_sep <- data.frame(rownames(mat_sims_sep), rep("Other", length((rownames(mat_sims_sep)))))
+colnames(anno_row_sep) <- c("Gene","DEG")
+rownames(anno_row_sep) <- (rownames(mat_sims_sep))
+anno_row_sep$Gene <- NULL
+```
+```{r}
+pdf(file = "./outputs/DESeq-results/figures/heatmaps/Heatmap_sims_sep.pdf", width = 8.2, height = 3.5)
+pheatmap(mat_sims_sep, col=geneexpcolors3,
+         annotation_col = anno_col[,c("Colony", "Treatment")],
+         annotation_row = anno_row_sep,
+         show_rownames = FALSE,
+         show_colnames = FALSE,
+         fontsize_row = 3,
+         annotation_colors = anno_colors_2,
+         annotation_legend = TRUE,
+         annotation_names_col = FALSE,
+         annotation_names_row = FALSE,
+         legend = TRUE,
+         treeheight_col = 30,
+         treeheight_row = 80,
+         breaks = seq(-4, 4, by = 0.02),
+         cutree_rows = 1,
+         cutree_cols = 2)
+#dev.off()
+```
+
+
+## Interaction effect gene heatmaps
+```{r}
+mat_int_HW2  <- assay(rld_LPS_int)[res_int_HW2$ID, ]
+row.names(mat_int_HW2) <- res_LPS_int$ID[rownames(res_LPS_int) %in% res_int_HW2$ID]
+mat_int_HW2 <- mat_int_HW2 - rowMeans(mat_int_HW2)
+range(mat_int_HW2)
+```
+```{r}
+mat_int_WT1  <- assay(rld_LPS_int)[res_int_WT1$ID, ]
+row.names(mat_int_WT1) <- res_LPS_int$ID[rownames(res_LPS_int) %in% res_int_WT1$ID]
+mat_int_WT1 <- mat_int_WT1 - rowMeans(mat_int_WT1)
+range(mat_int_WT1)
+```
+```{r}
+mat_int_WT2  <- assay(rld_LPS_int)[res_int_WT2$ID, ]
+row.names(mat_int_WT2) <- res_LPS_int$ID[rownames(res_LPS_int) %in% res_int_WT2$ID]
+mat_int_WT2 <- mat_int_WT2 - rowMeans(mat_int_WT2)
+range(mat_int_WT2)
+```
+```{r}
+pdf(file = "./outputs/DESeq-results/figures/heatmaps/Heatmap_int_WT2.pdf", width = 6.5, height = 6)
+pheatmap(mat_int_WT2, col=geneexpcolors,
+         annotation_col = anno_col[,c("Colony", "Treatment")],
+         #annotation_row = anno_row,
+         show_rownames = TRUE,
+         show_colnames = FALSE,
+         fontsize_row = 6,
+         annotation_colors = anno_colors,
+         annotation_legend = TRUE,
+         annotation_names_col = FALSE,
+         annotation_names_row = FALSE,
+         legend = TRUE,
+         treeheight_col = 8,
+         treeheight_row = 20,
+         breaks = seq(-3, 3, by = 0.015),
+         cutree_rows = 1,
+         cutree_cols = 2)
+#dev.off()
+
+```
+```{r}
+#Combine into one matrix
+mat_int_WT <- rbind(mat_int_WT2, mat_int_WT1)
+mat_int <- rbind(mat_int_WT, mat_int_HW2)
+mat_int <- mat_int - rowMeans(mat_int)
+range(mat_int)
+nrow(mat_int)
+```
+```{r}
+pdf(file = "./outputs/DESeq-results/figures/heatmaps/Heatmap_int_2.pdf", width = 6.5, height = 10)
+pheatmap(mat_int, col=geneexpcolors2,
+         annotation_col = anno_col[,c("Colony", "Treatment")],
+         #annotation_row = anno_row,
+         show_rownames = TRUE,
+         show_colnames = FALSE,
+         fontsize_row = 6,
+         annotation_colors = anno_colors,
+         annotation_legend = TRUE,
+         annotation_names_col = FALSE,
+         annotation_names_row = FALSE,
+         legend = TRUE,
+         treeheight_col = 30,
+         treeheight_row = 60,
+         breaks = seq(-5, 5, by = 0.025),
+         cutree_rows = 1,
+         cutree_cols = 1)
+#dev.off()
+
 ```

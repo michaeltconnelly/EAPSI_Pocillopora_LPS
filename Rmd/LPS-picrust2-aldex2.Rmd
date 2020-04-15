@@ -35,16 +35,16 @@ ko_predicted <- read.delim("./outputs/picrust2_out_pipeline/EC_predicted.tsv", h
 path_abund_unstrat <- read.delim("./outputs/picrust2_out_pipeline/pathways_out/path_abun_unstrat.tsv", header = TRUE)
 ```
 ```{r}
-path_abund <- path_abund_unstrat %>% select(pathway, matches("[HW][wt][1-2].[36][abc]"))
+path_abund <- path_abund_unstrat %>% dplyr::select(pathway, matches("[HW][wt][1-2].[36][abc]"))
 row.names(path_abund) <- path_abund$pathway
-path_abund <- path_abund %>% select(-pathway)
+path_abund <- path_abund %>% dplyr::select(-pathway)
 path_abund_round <- round(path_abund, digits = 0)
 ```
 ```{r}
 sum(path_abund)
-relative <- function(x) {round(((x / sum(x))*10000000), digits = 0)}
+relative <- function(x) {round(((x / sum(x))*9500000), digits = 0)}
 path_abund_rel <- relative(path_abund)
-
+sum(path_abund_rel)
 ```
 ```{r}
 aldex.asv <- path_abund_rel
@@ -142,7 +142,7 @@ aldex2 <- aldex.plot_gg(x.ps, type = "MA", test = "welch")
  
 aldexplots <- (aldex1 / aldex2) 
 aldexplots
-ggsave(aldexplots, filename = "./outputs/aldex2/lps-picrust2-aldex2.pdf", device = "pdf")
+ggsave(aldexplots, filename = "./outputs/aldex2/lps-picrust2-aldex2.pdf", device = "pdf", width = 8.5, height = 5.5)
 ```
 ```{r}
 cutoff <- 0.1

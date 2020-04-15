@@ -44,8 +44,16 @@ summary(resfdr1_LPS_ctrl)
 ### Houwan1 vs. Houwan2
 ```{r}
 res_HW1_HW2 <- results(dds_LPS, contrast = c("Colony", "HW1", "HW2"))
-res_HW1_HW2$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
-res_HW1_HW2$IDGeneInfo <- as.character(res_HW1_HW2$IDGeneInfo)
+###
+res_HW1_HW2$ID <- mcols(dds_LPS)$ID
+res_HW1_HW2$GeneInfo <- mcols(dds_LPS)$GeneInfo
+res_HW1_HW2$KO_terms <- mcols(dds_LPS)$KO_terms
+res_HW1_HW2$Pfam_domains <- mcols(dds_LPS)$Pfam_domains
+res_HW1_HW2$ID <- as.character(res_HW1_HW2$ID)
+res_HW1_HW2$GeneInfo <- as.character(res_HW1_HW2$GeneInfo)
+res_HW1_HW2$KO_terms <- as.character(res_HW1_HW2$KO_terms)
+res_HW1_HW2$Pfam_domains <- as.character(res_HW1_HW2$Pfam_domains)
+###
 write.csv(as.data.frame(res_HW1_HW2[order(res_HW1_HW2$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/all/res_HW1_HW2_FDR1.csv")
 resfdr1_HW1_HW2 <- subset(res_HW1_HW2, padj<0.01)
 resfdr1_HW1_HW2_up <- subset(res_HW1_HW2, padj<0.01 & log2FoldChange>0)
@@ -60,8 +68,16 @@ summary(res_HW1_HW2)
 ### Houwan1 vs. Wanglitung1
 ```{r}
 res_HW1_WT1 <- results(dds_LPS, contrast = c("Colony", "HW1", "WT1"))
-res_HW1_WT1$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
-res_HW1_WT1$IDGeneInfo <- as.character(res_HW1_WT1$IDGeneInfo)
+###
+res_HW1_WT1$ID <- mcols(dds_LPS)$ID
+res_HW1_WT1$GeneInfo <- mcols(dds_LPS)$GeneInfo
+res_HW1_WT1$KO_terms <- mcols(dds_LPS)$KO_terms
+res_HW1_WT1$Pfam_domains <- mcols(dds_LPS)$Pfam_domains
+res_HW1_WT1$ID <- as.character(res_HW1_WT1$ID)
+res_HW1_WT1$GeneInfo <- as.character(res_HW1_WT1$GeneInfo)
+res_HW1_WT1$KO_terms <- as.character(res_HW1_WT1$KO_terms)
+res_HW1_WT1$Pfam_domains <- as.character(res_HW1_WT1$Pfam_domains)
+###
 write.csv(as.data.frame(res_HW1_WT1[order(res_HW1_WT1$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/all/res_HW1_WT1_FDR1.csv")
 resfdr1_HW1_WT1 <- subset(res_HW1_WT1, padj<0.01)
 resfdr1_HW1_WT1_up <- subset(res_HW1_WT1, padj<0.01 & log2FoldChange>0)
@@ -76,8 +92,16 @@ summary(res_HW1_WT1)
 ### Houwan1 vs. Wanglitung2
 ```{r}
 res_HW1_WT2 <- results(dds_LPS, contrast = c("Colony", "HW1", "WT2"))
-res_HW1_WT2$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
-res_HW1_WT2$IDGeneInfo <- as.character(res_HW1_WT2$IDGeneInfo)
+###
+res_HW1_WT2$ID <- mcols(dds_LPS)$ID
+res_HW1_WT2$GeneInfo <- mcols(dds_LPS)$GeneInfo
+res_HW1_WT2$KO_terms <- mcols(dds_LPS)$KO_terms
+res_HW1_WT2$Pfam_domains <- mcols(dds_LPS)$Pfam_domains
+res_HW1_WT2$ID <- as.character(res_HW1_WT2$ID)
+res_HW1_WT2$GeneInfo <- as.character(res_HW1_WT2$GeneInfo)
+res_HW1_WT2$KO_terms <- as.character(res_HW1_WT2$KO_terms)
+res_HW1_WT2$Pfam_domains <- as.character(res_HW1_WT2$Pfam_domains)
+###
 write.csv(as.data.frame(res_HW1_WT2[order(res_HW1_WT2$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/all/res_HW1_WT2_FDR1.csv")
 resfdr1_HW1_WT2 <- subset(res_HW1_WT2, padj<0.01)
 resfdr1_HW1_WT2_up <- subset(res_HW1_WT2, padj<0.01 & log2FoldChange>0)
@@ -92,8 +116,16 @@ summary(res_HW1_WT2)
 ### Houwan2 vs. Wanglitung1
 ```{r}
 res_HW2_WT1 <- results(dds_LPS, contrast = c("Colony", "HW2", "WT1"))
-res_HW2_WT1$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
-res_HW2_WT1$IDGeneInfo <- as.character(res_HW2_WT1$IDGeneInfo)
+###
+res_HW2_WT1$ID <- mcols(dds_LPS)$ID
+res_HW2_WT1$GeneInfo <- mcols(dds_LPS)$GeneInfo
+res_HW2_WT1$KO_terms <- mcols(dds_LPS)$KO_terms
+res_HW2_WT1$Pfam_domains <- mcols(dds_LPS)$Pfam_domains
+res_HW2_WT1$ID <- as.character(res_HW2_WT1$ID)
+res_HW2_WT1$GeneInfo <- as.character(res_HW2_WT1$GeneInfo)
+res_HW2_WT1$KO_terms <- as.character(res_HW2_WT1$KO_terms)
+res_HW2_WT1$Pfam_domains <- as.character(res_HW2_WT1$Pfam_domains)
+###
 write.csv(as.data.frame(res_HW2_WT1[order(res_HW2_WT1$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/all/res_HW2_WT1_FDR1.csv")
 resfdr1_HW2_WT1 <- subset(res_HW2_WT1, padj<0.01)
 resfdr1_HW2_WT1_up <- subset(res_HW2_WT1, padj<0.01 & log2FoldChange>0)
@@ -108,8 +140,16 @@ summary(res_HW2_WT1)
 ### Houwan2 vs. Wanglitung2
 ```{r}
 res_HW2_WT2 <- results(dds_LPS, contrast = c("Colony", "HW2", "WT2"))
-res_HW2_WT2$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
-res_HW2_WT2$IDGeneInfo <- as.character(res_HW2_WT2$IDGeneInfo)
+###
+res_HW2_WT2$ID <- mcols(dds_LPS)$ID
+res_HW2_WT2$GeneInfo <- mcols(dds_LPS)$GeneInfo
+res_HW2_WT2$KO_terms <- mcols(dds_LPS)$KO_terms
+res_HW2_WT2$Pfam_domains <- mcols(dds_LPS)$Pfam_domains
+res_HW2_WT2$ID <- as.character(res_HW2_WT2$ID)
+res_HW2_WT2$GeneInfo <- as.character(res_HW2_WT2$GeneInfo)
+res_HW2_WT2$KO_terms <- as.character(res_HW2_WT2$KO_terms)
+res_HW2_WT2$Pfam_domains <- as.character(res_HW2_WT2$Pfam_domains)
+###
 write.csv(as.data.frame(res_HW2_WT2[order(res_HW2_WT2$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/all/res_HW2_WT2_FDR1.csv")
 resfdr1_HW2_WT2 <- subset(res_HW2_WT2, padj<0.01)
 resfdr1_HW2_WT2_up <- subset(res_HW2_WT2, padj<0.01 & log2FoldChange>0)
@@ -124,8 +164,16 @@ summary(res_HW2_WT2)
 ### Wanglitung1 vs. Wanglitung2
 ```{r}
 res_WT1_WT2 <- results(dds_LPS, contrast = c("Colony", "WT1", "WT2"))
-res_WT1_WT2$IDGeneInfo <- mcols(dds_LPS)$IDGeneInfo
-res_WT1_WT2$IDGeneInfo <- as.character(res_WT1_WT2$IDGeneInfo)
+###
+res_WT1_WT2$ID <- mcols(dds_LPS)$ID
+res_WT1_WT2$GeneInfo <- mcols(dds_LPS)$GeneInfo
+res_WT1_WT2$KO_terms <- mcols(dds_LPS)$KO_terms
+res_WT1_WT2$Pfam_domains <- mcols(dds_LPS)$Pfam_domains
+res_WT1_WT2$ID <- as.character(res_WT1_WT2$ID)
+res_WT1_WT2$GeneInfo <- as.character(res_WT1_WT2$GeneInfo)
+res_WT1_WT2$KO_terms <- as.character(res_WT1_WT2$KO_terms)
+res_WT1_WT2$Pfam_domains <- as.character(res_WT1_WT2$Pfam_domains)
+###
 write.csv(as.data.frame(res_WT1_WT2[order(res_WT1_WT2$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/all/res_WT1_WT2_FDR1.csv")
 resfdr1_WT1_WT2 <- subset(res_WT1_WT2, padj<0.01)
 resfdr1_WT1_WT2_up <- subset(res_WT1_WT2, padj<0.01 & log2FoldChange>0)
@@ -141,8 +189,16 @@ summary(res_WT1_WT2)
 ### Houwan1
 ```{r}
 res_HW1_LPS <- results(dds_HW1, contrast = c("Treatment", "LPS", "control"))
-res_HW1_LPS$IDGeneInfo <- mcols(dds_HW1)$IDGeneInfo
-res_HW1_LPS$IDGeneInfo <- as.character(res_HW1_LPS$IDGeneInfo)
+###
+res_HW1_LPS$ID <- mcols(dds_HW1)$ID
+res_HW1_LPS$GeneInfo <- mcols(dds_HW1)$GeneInfo
+res_HW1_LPS$KO_terms <- mcols(dds_HW1)$KO_terms
+res_HW1_LPS$Pfam_domains <- mcols(dds_HW1)$Pfam_domains
+res_HW1_LPS$ID <- as.character(res_HW1_LPS$ID)
+res_HW1_LPS$GeneInfo <- as.character(res_HW1_LPS$GeneInfo)
+res_HW1_LPS$KO_terms <- as.character(res_HW1_LPS$KO_terms)
+res_HW1_LPS$Pfam_domains <- as.character(res_HW1_LPS$Pfam_domains)
+###
 write.csv(as.data.frame(res_HW1_LPS[order(res_HW1_LPS$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/all/res_HW1_LPS_FDR1.csv")
 resfdr1_HW1_LPS <- subset(res_HW1_LPS, padj<0.01)
 resfdr1_HW1_LPS_up <- subset(res_HW1_LPS, padj<0.01 & log2FoldChange>0)
@@ -157,8 +213,16 @@ summary(resfdr1_HW1_LPS)
 ### Houwan2
 ```{r}
 res_HW2_LPS <- results(dds_HW2, contrast = c("Treatment", "LPS", "control"))
-res_HW2_LPS$IDGeneInfo <- mcols(dds_HW2)$IDGeneInfo
-res_HW2_LPS$IDGeneInfo <- as.character(res_HW2_LPS$IDGeneInfo)
+###
+res_HW2_LPS$ID <- mcols(dds_HW2)$ID
+res_HW2_LPS$GeneInfo <- mcols(dds_HW2)$GeneInfo
+res_HW2_LPS$KO_terms <- mcols(dds_HW2)$KO_terms
+res_HW2_LPS$Pfam_domains <- mcols(dds_HW2)$Pfam_domains
+res_HW2_LPS$ID <- as.character(res_HW2_LPS$ID)
+res_HW2_LPS$GeneInfo <- as.character(res_HW2_LPS$GeneInfo)
+res_HW2_LPS$KO_terms <- as.character(res_HW2_LPS$KO_terms)
+res_HW2_LPS$Pfam_domains <- as.character(res_HW2_LPS$Pfam_domains)
+###
 write.csv(as.data.frame(res_HW2_LPS[order(res_HW2_LPS$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/all/res_HW2_LPS_FDR1.csv")
 resfdr1_HW2_LPS <- subset(res_HW2_LPS, padj<0.01)
 resfdr1_HW2_LPS_up <- subset(res_HW2_LPS, padj<0.01 & log2FoldChange>0)
@@ -173,8 +237,16 @@ summary(resfdr1_HW2_LPS)
 ### Wanglitung1
 ```{r}
 res_WT1_LPS <- results(dds_WT1, contrast = c("Treatment", "LPS", "control"))
-res_WT1_LPS$IDGeneInfo <- mcols(dds_WT1)$IDGeneInfo
-res_WT1_LPS$IDGeneInfo <- as.character(res_WT1_LPS$IDGeneInfo)
+###
+res_WT1_LPS$ID <- mcols(dds_WT1)$ID
+res_WT1_LPS$GeneInfo <- mcols(dds_WT1)$GeneInfo
+res_WT1_LPS$KO_terms <- mcols(dds_WT1)$KO_terms
+res_WT1_LPS$Pfam_domains <- mcols(dds_WT1)$Pfam_domains
+res_WT1_LPS$ID <- as.character(res_WT1_LPS$ID)
+res_WT1_LPS$GeneInfo <- as.character(res_WT1_LPS$GeneInfo)
+res_WT1_LPS$KO_terms <- as.character(res_WT1_LPS$KO_terms)
+res_WT1_LPS$Pfam_domains <- as.character(res_WT1_LPS$Pfam_domains)
+###
 write.csv(as.data.frame(res_WT1_LPS[order(res_WT1_LPS$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/all/res_WT1_LPS_FDR1.csv")
 resfdr1_WT1_LPS <- subset(res_WT1_LPS, padj<0.01)
 resfdr1_WT1_LPS_up <- subset(res_WT1_LPS, padj<0.01 & log2FoldChange>0)
@@ -189,8 +261,16 @@ summary(resfdr1_WT1_LPS)
 ### Wanglitung2
 ```{r}
 res_WT2_LPS <- results(dds_WT2, contrast = c("Treatment", "LPS", "control"))
-res_WT2_LPS$IDGeneInfo <- mcols(dds_WT2)$IDGeneInfo
-res_WT2_LPS$IDGeneInfo <- as.character(res_WT2_LPS$IDGeneInfo)
+###
+res_WT2_LPS$ID <- mcols(dds_WT2)$ID
+res_WT2_LPS$GeneInfo <- mcols(dds_WT2)$GeneInfo
+res_WT2_LPS$KO_terms <- mcols(dds_WT2)$KO_terms
+res_WT2_LPS$Pfam_domains <- mcols(dds_WT2)$Pfam_domains
+res_WT2_LPS$ID <- as.character(res_WT2_LPS$ID)
+res_WT2_LPS$GeneInfo <- as.character(res_WT2_LPS$GeneInfo)
+res_WT2_LPS$KO_terms <- as.character(res_WT2_LPS$KO_terms)
+res_WT2_LPS$Pfam_domains <- as.character(res_WT2_LPS$Pfam_domains)
+###
 write.csv(as.data.frame(res_WT2_LPS[order(res_WT2_LPS$padj, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/all/res_WT2_LPS_FDR1.csv")
 resfdr1_WT2_LPS <- subset(res_WT2_LPS, padj<0.01)
 resfdr1_WT2_LPS_up <- subset(res_WT2_LPS, padj<0.01 & log2FoldChange>0)
@@ -200,5 +280,53 @@ write.csv(as.data.frame(resfdr1_WT2_LPS_up[order(resfdr1_WT2_LPS_up$log2FoldChan
 write.csv(as.data.frame(resfdr1_WT2_LPS_dn[order(resfdr1_WT2_LPS_dn$log2FoldChange, decreasing = FALSE),]), file = "./outputs/DESeq-results/tables/down/res_WT2_LPS_dn_FDR1.csv")
 colnames(res_WT2_LPS)
 summary(resfdr1_WT2_LPS)
+```
+
+## Concatenation of DESeq2 model results into Supplementary Table 2
+```{r}
+doubledf <- data.frame(cbind(res_LPS_int$log2FoldChange, res_LPS_int$padj,
+                             res_HW1_LPS$log2FoldChange, res_HW1_LPS$padj,
+                             res_HW2_LPS$log2FoldChange, res_HW2_LPS$padj,
+                             res_WT1_LPS$log2FoldChange, res_WT1_LPS$padj,
+                             res_WT2_LPS$log2FoldChange, res_WT2_LPS$padj))
+###
+colnames(doubledf) <- c("LFC_LPS", "padj_LPS",
+                        "LFC_HW1", "padj_HW1",
+                        "LFC_HW2", "padj_HW2",
+                        "LFC_WT1", "padj_WT1",
+                        "LFC_WT2", "padj_WT2")
+#doubledf <- round_df(doubledf, digits = 4)
+doubledf$ID <- rownames(res_LPS)
+doubledf <- doubledf[,c(11, 1:10)] 
+doubledf$GeneInfo <- res_LPS$GeneInfo
+doubledf$KO_terms <- res_LPS$KO_terms
+doubledf$Pfam_domains <- res_LPS$Pfam_domains
+
+# Add DEG up/down columns for single treatments
+doubledf$DEG_LPS <- ifelse(doubledf$padj_LPS < 0.01 & doubledf$LFC_LPS > 0, "Upregulated", 
+                           ifelse(doubledf$padj_LPS < 0.01 & doubledf$LFC_LPS < 0, "Downregulated", "NA"))
+doubledf$DEG_LPS <- factor(doubledf$DEG_LPS, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+
+doubledf$DEG_HW1 <- ifelse(doubledf$padj_HW1 < 0.01 & doubledf$LFC_HW1 > 0, "Upregulated", 
+                            ifelse(doubledf$padj_HW1 < 0.01 & doubledf$LFC_HW1 < 0, "Downregulated", "NA"))
+doubledf$DEG_HW1 <- factor(doubledf$DEG_HW1, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+
+doubledf$DEG_HW2 <- ifelse(doubledf$padj_HW2 < 0.01 & doubledf$LFC_HW2 > 0, "Upregulated", 
+                            ifelse(doubledf$padj_HW2 < 0.01 & doubledf$LFC_HW2 < 0, "Downregulated", "NA"))
+doubledf$DEG_HW2 <- factor(doubledf$DEG_HW2, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+  
+doubledf$DEG_WT1 <- ifelse(doubledf$padj_WT1 < 0.01 & doubledf$LFC_WT1 > 0, "Upregulated", 
+                                ifelse(doubledf$padj_WT1 < 0.01 & doubledf$LFC_WT1 < 0, "Downregulated", "NA"))
+doubledf$DEG_WT1 <- factor(doubledf$DEG_WT1, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+
+doubledf$DEG_WT2 <-  ifelse(doubledf$padj_WT2 < 0.01 & doubledf$LFC_WT2 > 0, "Upregulated", 
+                                    ifelse(doubledf$padj_WT2 < 0.01 & doubledf$LFC_WT2 < 0, "Downregulated", "NA"))
+doubledf$DEG_WT2 <- factor(doubledf$DEG_WT2, levels = c("Upregulated", "Downregulated", "NA"), ordered = TRUE)
+
+doubledf <- doubledf[,c(1,12:14,2:3,15,4:5,16,6:7,17,8:9,18,10:11,19)]
+
+doubledf <- doubledf %>% arrange(padj_LPS)
+
+write.csv(doubledf, file = "./outputs/DESeq-results/tables/all/SupplementaryTable2.csv", row.names = FALSE)
 ```
 

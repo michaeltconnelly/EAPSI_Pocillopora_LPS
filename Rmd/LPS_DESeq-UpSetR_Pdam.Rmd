@@ -17,11 +17,11 @@ library("UpSetR")
 ```
 
 ```{r}
-DEGlists <- list(LPS = ressig_LPS_ctrl$IDGeneInfo)
-DEGlists_geno <- list(HW1 = ressig_HW1_LPS$IDGeneInfo, HW2 = ressig_HW2_LPS$IDGeneInfo, WT1 = ressig_WT1_LPS$IDGeneInfo, WT2 = ressig_WT2_LPS$IDGeneInfo)
-DEGlists_geno_up <- list(HW1 = ressig_HW1_LPS_up$IDGeneInfo, HW2 = ressig_HW2_LPS_up$IDGeneInfo, WT1 = ressig_WT1_LPS_up$IDGeneInfo, WT2 = ressig_WT2_LPS_up$IDGeneInfo)
-DEGlists_geno_dn <- list(HW1 = ressig_HW1_LPS_dn$IDGeneInfo, HW2 = ressig_HW2_LPS_dn$IDGeneInfo, WT1 = ressig_WT1_LPS_dn$IDGeneInfo, WT2 = ressig_WT2_LPS_dn$IDGeneInfo)
-DEGlists_all <- list(LPS = ressig_LPS_ctrl$IDGeneInfo, HW1 = ressig_HW1_LPS$IDGeneInfo, HW2 = ressig_HW2_LPS$IDGeneInfo, WT1 = ressig_WT1_LPS$IDGeneInfo, WT2 = ressig_WT2_LPS$IDGeneInfo)
+DEGlists <- list(LPS = resfdr5_LPS_ctrl$IDGeneInfo)
+DEGlists_geno <- list(HW1 = resfdr5_HW1_LPS$IDGeneInfo, HW2 = resfdr5_HW2_LPS$IDGeneInfo, WT1 = resfdr5_WT1_LPS$IDGeneInfo, WT2 = resfdr5_WT2_LPS$IDGeneInfo)
+DEGlists_geno_up <- list(HW1 = resfdr5_HW1_LPS_up$IDGeneInfo, HW2 = resfdr5_HW2_LPS_up$IDGeneInfo, WT1 = resfdr5_WT1_LPS_up$IDGeneInfo, WT2 = resfdr5_WT2_LPS_up$IDGeneInfo)
+DEGlists_geno_dn <- list(HW1 = resfdr5_HW1_LPS_dn$IDGeneInfo, HW2 = resfdr5_HW2_LPS_dn$IDGeneInfo, WT1 = resfdr5_WT1_LPS_dn$IDGeneInfo, WT2 = resfdr5_WT2_LPS_dn$IDGeneInfo)
+DEGlists_all <- list(LPS = resfdr5_LPS_ctrl$IDGeneInfo, HW1 = resfdr5_HW1_LPS$IDGeneInfo, HW2 = resfdr5_HW2_LPS$IDGeneInfo, WT1 = resfdr5_WT1_LPS$IDGeneInfo, WT2 = resfdr5_WT2_LPS$IDGeneInfo)
 ```
 ```{r}
 upset(fromList(DEGlists_geno))
